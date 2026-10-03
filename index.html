@@ -245,6 +245,23 @@ h1{font-size:clamp(24px,6.4vw,46px)} .sub{font-size:clamp(14px,3.4vw,20px)}
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 24px);transform:translateX(-50%);background:var(--ink);color:#fff;
   padding:12px 20px;border-radius:16px;font-weight:800;font-size:18px;opacity:0;transition:opacity .2s;z-index:99;pointer-events:none}
 .toast.on{opacity:1}
+
+/* 🕐 시계 */
+.clk{display:block;margin:6px auto;width:100%;height:auto}
+.clk.cbig{width:min(68vw,40vh,340px)}
+.clk.cmid{width:min(48vw,28vh,240px)}
+.clk.drag{cursor:grab}
+.choices.wide button{width:auto;aspect-ratio:auto;min-width:clamp(120px,28vw,200px);padding:14px 20px;font-size:clamp(22px,5.4vw,34px)}
+.choices.clks{gap:8px}
+.choices.clks button{width:min(29vw,210px);aspect-ratio:1;padding:6px}
+.choices.clks .clk{margin:0}
+.digi{display:inline-block;margin:6px auto;padding:8px 22px;border-radius:16px;background:#1f2937;color:#7cf29a;font:900 clamp(40px,10vw,72px)/1.1 ui-monospace,Menlo,monospace;letter-spacing:2px}
+.two{display:flex;align-items:center;justify-content:center;gap:10px}
+.two>div:not(.arr){width:min(38vw,30vh,220px)}
+.two b{display:block;font-size:clamp(18px,4.5vw,26px)}
+.two .arr{font-size:clamp(28px,7vw,44px);color:#3f6ad8}
+.nudge{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:6px 0 12px}
+.nudge button{font-size:clamp(15px,3.8vw,20px);font-weight:800;padding:8px 12px;border-radius:14px;background:#fff;border:3px solid var(--line)}
 </style>
 </head>
 <body>
@@ -515,10 +532,222 @@ var FAST_LEVELS = [
   {t:'ar', op:'mixop',label:'+×',   name:'혼합 계산 (곱셈 먼저: 3+4×2)'},
   {t:'ar', op:'paren',label:'( )',  name:'괄호 먼저 ((3+4)×2)'}
 ];
+/* ═══════════════ 🕐 시계 보기 ═══════════════
+   교과 순서(1-2 몇 시·몇 시 30분 → 2-2 5분·1분 단위 → 3-1 시간 더하기·걸린 시간 → 오전·오후).
+   읽기(바늘→글) · 바늘 맞추기(끌어서) · 시계 고르기(글→바늘) · 디지털 ↔ 바늘 · 몇 분 뒤 · 걸린 시간 */
+var HW = ['열두','한','두','세','네','다섯','여섯','일곱','여덟','아홉','열','열한','열두'];
+function tTxt(h, m){ return h+'시'+(m ? ' '+m+'분' : ''); }
+function tSay(h, m){ return HW[h]+' 시'+(m ? ' '+kor(m)+' 분' : ''); }
+function tDig(h, m){ return h+':'+(m<10?'0':'')+m; }
+function hAdd(h, k){ return ((h - 1 + k) % 12 + 12) % 12 + 1; }
+function durTxt(n){ var h = Math.floor(n/60), m = n%60; return (h ? h+'시간' : '')+(h && m ? ' ' : '')+(m || !h ? m+'분' : ''); }
+function durSay(n){ var h = Math.floor(n/60), m = n%60; return (h ? HW[h]+' 시간' : '')+(m ? ' '+kor(m)+' 분' : ''); }
+function clockSVG(h, m, o){
+  o = o || {};
+  var s = '<svg class="clk'+(o.cls?' '+o.cls:'')+'" viewBox="-110 -110 220 220"'+(o.id?' id="'+o.id+'"':'')+'>'+
+    '<circle r="104" fill="#fff" stroke="#f2b544" stroke-width="7"/>';
+  for(var k=0;k<60;k++){ var a = k*6*Math.PI/180, big = k%5===0, r1 = big ? 84 : 90;
+    s += '<line x1="'+(Math.sin(a)*r1).toFixed(1)+'" y1="'+(-Math.cos(a)*r1).toFixed(1)+'" x2="'+(Math.sin(a)*97).toFixed(1)+'" y2="'+(-Math.cos(a)*97).toFixed(1)+'" stroke="'+(big?'#555':'#bbb')+'" stroke-width="'+(big?3:1.4)+'"/>'; }
+  for(var n=1;n<=12;n++){ var b = n*30*Math.PI/180;
+    s += '<text x="'+(Math.sin(b)*68).toFixed(1)+'" y="'+(-Math.cos(b)*68+9).toFixed(1)+'" text-anchor="middle" font-size="26" font-weight="900" fill="#333">'+n+'</text>';
+    if(o.hint) s += '<text x="'+(Math.sin(b)*48).toFixed(1)+'" y="'+(-Math.cos(b)*48+5).toFixed(1)+'" text-anchor="middle" font-size="13" font-weight="800" fill="#3f6ad8">'+(n*5%60)+'</text>'; }
+  var ha = ((h%12) + m/60)*30, ma = m*6;
+  s += '<g class="hh" transform="rotate('+ha+')"><line y1="10" y2="-46" stroke="#e0574f" stroke-width="10" stroke-linecap="round"/></g>'+
+       '<g class="mh" transform="rotate('+ma+')"><line y1="14" y2="-80" stroke="#3f6ad8" stroke-width="6" stroke-linecap="round"/></g>'+
+       '<circle r="7" fill="#333"/></svg>';
+  return s;
+}
+/* 끌어서 바늘 돌리기 — 톱니처럼 맞물림: 긴바늘이 12를 지나면 짧은바늘이 한 칸 */
+function clockDrag(svg, T, snap, onMove){
+  var grab = null;
+  function ang(e){ var r = svg.getBoundingClientRect(), dx = e.clientX - (r.left + r.width/2), dy = e.clientY - (r.top + r.height/2);
+    return {a:(Math.atan2(dx, -dy)*180/Math.PI + 360) % 360, r:Math.hypot(dx, dy)/(r.width/2)}; }
+  function dd(a, b){ var d = Math.abs(a-b) % 360; return Math.min(d, 360-d); }
+  function paint(){ svg.querySelector('.hh').setAttribute('transform', 'rotate('+(((T.h%12) + T.m/60)*30)+')'); svg.querySelector('.mh').setAttribute('transform', 'rotate('+(T.m*6)+')'); }
+  svg.style.touchAction = 'none';
+  svg.addEventListener('pointerdown', function(e){
+    var p = ang(e), dh = dd(p.a, ((T.h%12) + T.m/60)*30), dm = dd(p.a, T.m*6);
+    grab = (dh < dm - 8 || (Math.abs(dh-dm) <= 8 && p.r < .55)) ? 'h' : 'm';
+    try{ svg.setPointerCapture(e.pointerId); }catch(_){}
+    move(e); e.preventDefault();
+  });
+  function move(e){
+    if(!grab) return;
+    var p = ang(e);
+    if(grab === 'm'){
+      var nm = Math.round(p.a/6/snap)*snap % 60;
+      if(T.m >= 45 && nm < 15) T.h = hAdd(T.h, 1); else if(T.m < 15 && nm >= 45) T.h = hAdd(T.h, -1);
+      if(nm !== T.m){ T.m = nm; sPop(); }
+    } else {
+      var nh = Math.round(p.a/30 - T.m/60); nh = ((nh % 12) + 12) % 12 || 12;
+      if(nh !== T.h){ T.h = nh; sPop(); }
+    }
+    paint(); if(onMove) onMove();
+  }
+  svg.addEventListener('pointermove', move);
+  ['pointerup','pointercancel'].forEach(function(k){ svg.addEventListener(k, function(){ grab = null; }); });
+  T.paint = paint;
+}
+var CLOCK_LEVELS = [
+  {t:'clk', mode:'read', mm:'h',    label:'3시',   name:'몇 시 읽기'},
+  {t:'clk', mode:'set',  mm:'h',    label:'🖐3시', name:'몇 시 — 바늘 맞추기'},
+  {t:'clk', mode:'read', mm:'half', label:'3:30',  name:'몇 시 30분 읽기'},
+  {t:'clk', mode:'pick', mm:'hh',   label:'🔎30',  name:'정각·30분 — 시계 고르기'},
+  {t:'clk', mode:'set',  mm:'hh',   label:'🖐30',  name:'정각·30분 — 바늘 맞추기'},
+  {t:'clk', mode:'read', mm:5, hint:true, label:'5분', name:'5분 단위 읽기 (도움 숫자)'},
+  {t:'clk', mode:'read', mm:5,      label:'3:25',  name:'5분 단위 읽기'},
+  {t:'clk', mode:'set',  mm:5,      label:'🖐25',  name:'5분 단위 — 바늘 맞추기'},
+  {t:'clk', mode:'dig',  mm:5,      label:'7:45',  name:'디지털 시계 → 바늘 시계'},
+  {t:'clk', mode:'read', mm:1,      label:'3:27',  name:'1분 단위 읽기'},
+  {t:'clk', mode:'dig',  mm:1,      label:'🔎27',  name:'1분 단위 — 시계 고르기'},
+  {t:'clk', mode:'after',add:'big', label:'+30',   name:'1시간 뒤 · 30분 뒤'},
+  {t:'clk', mode:'after',add:'min', label:'+25분', name:'몇 분 뒤 (5분 단위)'},
+  {t:'clk', mode:'dur',             label:'⏳',    name:'걸린 시간'},
+  {t:'clk', mode:'ampm',            label:'☀️🌙',  name:'오전·오후 (하루 24시간)'}
+];
+function clkTime(mm){
+  var h = rnd(1,12), m = mm==='h' ? 0 : mm==='half' ? 30 : mm==='hh' ? [0,30][rnd(0,1)] : mm===5 ? rnd(0,11)*5 : rnd(0,59);
+  if(mm===1 && m%5===0) m = (m + rnd(1,4)) % 60;
+  if(mm===5 && m===0) m = rnd(1,11)*5;
+  return [h, m];
+}
+/* 아이들이 실제로 헷갈리는 답으로 보기를 만든다 — 긴바늘 숫자를 그대로 «6분», 30분 넘으면 다음 시로, 두 바늘 바꿔 읽기 */
+function clkWrong(h, m, mm){
+  var c = [], add = function(a, b){ if(b>=0 && b<60 && !(a===h && b===m) && !c.some(function(v){ return v[0]===a && v[1]===b; })) c.push([a, b]); };
+  if(m >= 30) add(hAdd(h,1), m);
+  if(m && m%5===0) add(h, m/5);
+  if(m%5===0) add(m/5 || 12, (h*5) % 60);
+  if(mm===1){ add(h, (m+5)%60); add(h, (m+55)%60); add(h, m+1 < 60 ? m+1 : m-1); }
+  if(mm===5 || mm===1) add(h, (m+30)%60);
+  add(hAdd(h,1), m); add(hAdd(h,-1), m);
+  if(mm!=='h') add(h, m ? 0 : 30);
+  c.sort(function(){ return Math.random()-.5; });
+  return c.slice(0, 2);
+}
+function okClk(tag, tries, sayTxt){
+  if(sayTxt) say(sayTxt, 1.05);
+  if(RUN.lv.t==='review' && !tries){ var mm = kid().miss; mm[tag] = Math.max(0, (mm[tag]||0) - 1); if(!mm[tag]) delete mm[tag]; save(); }
+  right(tries ? 1 : 2);
+}
+/* 오답 노트 → 시계 문제 */
+function clkFromTag(t){
+  var m;
+  if((m = t.match(/^(🕐|🔎|🖐|📟)(\d+):(\d+)$/))) return {mode:{'🕐':'read','🔎':'pick','🖐':'set','📟':'dig'}[m[1]], h:+m[2], m:+m[3], mm:(+m[3])%5 ? 1 : 5};
+  if((m = t.match(/^⏩(\d+):(\d+)\+(\d+)$/))) return {mode:'after', h:+m[1], m:+m[2], add:+m[3]};
+  if((m = t.match(/^⏳(\d+):(\d+)~(\d+):(\d+)$/))) return {mode:'dur', h:+m[1], m:+m[2], h2:+m[3], m2:+m[4]};
+  if((m = t.match(/^☀️(\d+)$/))) return {mode:'ampm', h24:+m[1]};
+  return null;
+}
+function qClock(pre){
+  var lv = pre ? Object.assign({hint:false}, pre) : RUN.lv, mode = lv.mode, mm = lv.mm, tries = 0;
+  var hm = pre && pre.h ? [pre.h, pre.m] : clkTime(mm), h = hm[0], m = hm[1];
+  var box = function(inner){ el('s-play').innerHTML = qTop()+'<div class="qbox">'+inner+'</div>'; bindTop(); show('s-play'); };
+  function choiceTxt(opts, ans, tag, okSay, wrongHint){
+    el('s-play').querySelectorAll('[data-o]').forEach(function(b){
+      b.onclick = function(){
+        if(b.dataset.o === ans) okClk(tag, tries, okSay);
+        else { wrong(tag); tries++; b.style.visibility = 'hidden'; if(wrongHint) say(wrongHint); }
+      };
+    });
+  }
+  var mix = function(a){ return a.sort(function(){ return Math.random()-.5; }); };
+  var hintSay = '짧은 바늘이 시, 긴 바늘이 분이에요.';
+
+  if(mode==='read'){
+    var tag = '🕐'+h+':'+m, ans = tTxt(h, m), opts = mix([ans].concat(clkWrong(h, m, mm).map(function(v){ return tTxt(v[0], v[1]); })));
+    box('<div class="sub">'+(m || mm!=='h' ? '몇 시 몇 분일까요?' : '몇 시일까요?')+'</div>'+clockSVG(h, m, {hint:lv.hint, cls:'cbig'})+
+        '<div class="choices wide">'+opts.map(function(o){ return '<button data-o="'+o+'">'+o+'</button>'; }).join('')+'</div>');
+    say(m || mm!=='h' ? '몇 시 몇 분일까요?' : '몇 시일까요?');
+    RUN.ans = ans; choiceTxt(opts, ans, tag, tSay(h, m)+'!', hintSay);
+  }
+  else if(mode==='pick' || mode==='dig'){
+    var tag2 = (mode==='dig' ? '📟' : '🔎')+h+':'+m, list = mix([[h, m]].concat(clkWrong(h, m, mm)));
+    box((mode==='dig' ? '<div class="sub">이 시각을 가리키는 시계는?</div><div class="digi">'+tDig(h, m)+'</div>'
+                      : '<div class="sub">어느 시계일까요?</div><div class="qtext" style="font-size:clamp(34px,8vw,60px)">'+tTxt(h, m)+'</div>')+
+        '<div class="choices clks">'+list.map(function(v){ return '<button data-o="'+v[0]+':'+v[1]+'">'+clockSVG(v[0], v[1])+'</button>'; }).join('')+'</div>');
+    say(tSay(h, m)+'를 가리키는 시계는?');
+    RUN.ans = h+':'+m; choiceTxt(null, h+':'+m, tag2, tSay(h, m)+'!', hintSay);
+  }
+  else if(mode==='set'){
+    var tag3 = '🖐'+h+':'+m, T = {h:12, m:0};
+    if(h===12 && m===0){ T.h = 3; }
+    box('<div class="sub">바늘을 손가락으로 돌려서 맞춰요</div><div class="qtext" style="font-size:clamp(34px,8vw,60px)">'+tTxt(h, m)+'</div>'+
+        clockSVG(T.h, T.m, {id:'dragClk', cls:'cbig drag'})+
+        '<div class="nudge"><button data-d="h-">◀ 1시간</button><button data-d="h+">1시간 ▶</button><button data-d="m-">◀ 5분</button><button data-d="m+">5분 ▶</button></div>'+
+        '<button class="big" id="clkOk">다 됐어요 ✔</button>');
+    say(tSay(h, m)+'로 바늘을 맞춰 보세요!');
+    RUN.ans = h+':'+m; var svg = el('dragClk'); clockDrag(svg, T, 5);
+    el('s-play').querySelectorAll('[data-d]').forEach(function(b){
+      b.onclick = function(){ var d = b.dataset.d; sPop();
+        if(d==='h+') T.h = hAdd(T.h, 1); if(d==='h-') T.h = hAdd(T.h, -1);
+        if(d==='m+'){ T.m += 5; if(T.m >= 60){ T.m -= 60; T.h = hAdd(T.h, 1); } }
+        if(d==='m-'){ T.m -= 5; if(T.m < 0){ T.m += 60; T.h = hAdd(T.h, -1); } }
+        T.paint(); };
+    });
+    el('clkOk').onclick = function(){
+      if(T.h === h && T.m === m) return okClk(tag3, tries, tSay(h, m)+'! 딱 맞았어요!');
+      wrong(tag3); tries++;
+      var tip = T.m !== m ? '긴 바늘을 '+(m ? (m%5 ? m+'분 자리' : '숫자 '+(m/5)) : '12')+'에 놓아요.' : '짧은 바늘이 '+h+(m >= 30 ? '과 '+hAdd(h,1)+' 사이' : m ? '을 조금 지난 곳' : '')+'에 있어야 해요.';
+      toast(tip); say(tip);
+    };
+  }
+  else if(mode==='after'){
+    var add = pre ? pre.add : (lv.add==='big' ? [30, 60, 90, 120, 180][rnd(0,4)] : rnd(2,11)*5);
+    if(!pre){ m = lv.add==='big' ? [0,30][rnd(0,1)] : rnd(0,11)*5; }
+    var tot = (h%12)*60 + m + add, h2 = Math.floor(tot/60) % 12 || 12, m2 = tot % 60, tag4 = '⏩'+h+':'+m+'+'+add;
+    var ans4 = tTxt(h2, m2), wr = [];
+    if(Math.floor((m+add)/60) > Math.floor(add/60)) wr.push(tTxt(hAdd(h2,-1), m2));     // 시를 안 올림
+    wr.push(tTxt(h2, (m2+30)%60)); wr.push(tTxt(hAdd(h2,1), m2)); wr.push(tTxt(h2, (m2+5)%60));
+    wr = wr.filter(function(v, i){ return v !== ans4 && wr.indexOf(v) === i; }).slice(0, 2);
+    var opts4 = mix([ans4].concat(wr));
+    box('<div class="sub">지금 시각</div>'+clockSVG(h, m, {cls:'cmid'})+'<div class="qtext" style="font-size:clamp(28px,7vw,48px)">'+durTxt(add)+' 뒤에는?</div>'+
+        '<div class="choices wide">'+opts4.map(function(o){ return '<button data-o="'+o+'">'+o+'</button>'; }).join('')+'</div>');
+    say('지금은 '+tSay(h, m)+'. '+durSay(add)+' 뒤에는 몇 시 몇 분일까요?');
+    RUN.ans = ans4; choiceTxt(opts4, ans4, tag4, durSay(add)+' 뒤는 '+tSay(h2, m2)+'!', '긴 바늘이 한 바퀴 돌면 한 시간이에요.');
+  }
+  else if(mode==='dur'){
+    var h1 = pre ? pre.h : rnd(1,10), m1 = pre ? pre.m : rnd(0,11)*5, len = rnd(2,20)*5;
+    var e2 = pre ? ((pre.h2%12)*60 + pre.m2) : ((h1%12)*60 + m1 + len), hh2 = pre ? pre.h2 : (Math.floor(e2/60) % 12 || 12), mm2 = pre ? pre.m2 : e2 % 60;
+    var dur = ((e2 - ((h1%12)*60 + m1)) % 720 + 720) % 720, tag5 = '⏳'+h1+':'+m1+'~'+hh2+':'+mm2;
+    var ans5 = durTxt(dur), wr5 = [durTxt(Math.abs(mm2 - m1) || 60), durTxt(dur+10), durTxt(Math.max(5, dur-10)), durTxt(dur+60), durTxt(Math.max(5,dur-60))];
+    wr5 = wr5.filter(function(v, i){ return v !== ans5 && wr5.indexOf(v) === i; }).slice(0, 2);
+    var opts5 = mix([ans5].concat(wr5));
+    box('<div class="sub">얼마나 걸렸을까요?</div><div class="two"><div><b>시작</b>'+clockSVG(h1, m1)+'</div><div class="arr">➜</div><div><b>끝</b>'+clockSVG(hh2, mm2)+'</div></div>'+
+        '<div class="choices wide">'+opts5.map(function(o){ return '<button data-o="'+o+'">'+o+'</button>'; }).join('')+'</div>');
+    say(tSay(h1, m1)+'에 시작해서 '+tSay(hh2, mm2)+'에 끝났어요. 얼마나 걸렸을까요?');
+    RUN.ans = ans5; choiceTxt(opts5, ans5, tag5, durSay(dur)+' 걸렸어요!', '긴 바늘이 몇 칸 갔는지 세어 봐요. 한 칸에 5분!');
+  }
+  else if(mode==='ampm'){
+    var h24 = pre ? pre.h24 : [1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22,23][rnd(0,21)], am = h24 < 12, h12 = h24 % 12 || 12, tag6 = '☀️'+h24;
+    var ans6 = (am ? '오전 ' : '오후 ')+h12+'시', wr6 = [(am ? '오후 ' : '오전 ')+h12+'시', (am ? '오전 ' : '오후 ')+hAdd(h12, 2)+'시', (am ? '오후 ' : '오전 ')+hAdd(h12, -2)+'시'];
+    if(h24 >= 13 && h24 <= 19) wr6[1] = '오후 '+(h24-10)+'시';             // 15시 → «오후 5시»로 헷갈림
+    var opts6 = mix([ans6].concat(wr6.slice(0, 2)));
+    var ic = h24 < 6 || h24 >= 20 ? '🌙' : h24 < 12 ? '🌅' : h24 < 18 ? '☀️' : '🌇';
+    box('<div class="sub">하루는 24시간! 이 시각은?</div><div class="digi">'+ic+' '+h24+':00</div>'+
+        '<div class="choices wide">'+opts6.map(function(o){ return '<button data-o="'+o+'">'+o+'</button>'; }).join('')+'</div>');
+    say(kor(h24)+' 시는 언제일까요?');
+    RUN.ans = ans6; choiceTxt(opts6, ans6, tag6, kor(h24)+' 시는 '+(am ? '오전 ' : '오후 ')+HW[h12]+' 시!', '낮 12시가 지나면 오후예요. 13시는 오후 1시!');
+  }
+}
+/* 🕐 시계 놀이 — 마음대로 돌려 보기 (시계 보기의 «마음대로 쓰기») */
+function startClockFree(){
+  var T = {h:3, m:0};
+  el('s-play').innerHTML = '<div class="top"><button class="ghost" id="cfBack">◀ 홈</button><span class="sp"></span><span class="chip">🕐 시계 놀이</span></div>'+
+    '<div class="qbox"><div class="sub">바늘을 돌려 보세요! 손을 떼면 시각을 읽어 줘요</div><div class="digi" id="cfDig">3:00</div>'+
+    '<div class="qtext" id="cfTxt" style="font-size:clamp(28px,7vw,48px)">3시</div>'+clockSVG(3, 0, {id:'cfClk', cls:'cbig drag', hint:true})+'</div>';
+  el('cfBack').onclick = vHome;
+  var svg = el('cfClk');
+  function upd(){ el('cfDig').textContent = tDig(T.h, T.m); el('cfTxt').textContent = tTxt(T.h, T.m); }
+  clockDrag(svg, T, 1, upd);
+  svg.addEventListener('pointerup', function(){ say(tSay(T.h, T.m)); });
+  show('s-play');
+}
+
 /* 수준(길) — 아이가 스스로 고른다. 수준마다 진도는 따로 저장 (범용: 다른 아이도 쓸 수 있게) */
 var TRACKS = {
   write:{n:'숫자 쓰기', em:'🐣', age:'4~5세', ex:'1 2 3 따라 쓰기 · 세기', levels:YU_LEVELS, extra:'free'},
   add:  {n:'더하기·빼기', em:'🐥', age:'6~7세', ex:'3 + 4 · 10 만들기', levels:ADD_LEVELS, extra:'speed'},
+  clock:{n:'시계 보기', em:'🕐', age:'6~9세', ex:'몇 시 몇 분 · 바늘 맞추기', levels:CLOCK_LEVELS, extra:'clock'},
   mul:  {n:'구구단', em:'🐔', age:'8~9세', ex:'7 × 8 · 스피드', levels:YA_LEVELS, extra:'speed'},
   fast: {n:'빠른 계산', em:'🦅', age:'10세~', ex:'+ − × ÷ 섞기', levels:FAST_LEVELS, extra:'speed'}
 };
@@ -818,6 +1047,7 @@ function vHome(){
           '<button class="act game2" id="goGame"><span class="e">🎮</span>게임 · 🎟 '+(x.tickets||0)+'</button>'+
           '<button class="act" id="goNext"><span class="e">▶</span>'+(next < L.length ? '다음 놀이' : '복습')+'</button>'+
           (track().extra==='speed' ? '<button class="act" id="goSpeed"><span class="e">⏱</span>스피드'+(x.best[x.track]?' · 최고 '+x.best[x.track]:'')+'</button>'
+                    : track().extra==='clock' ? '<button class="act" id="goClkFree"><span class="e">🕐</span>시계 놀이</button>'
                     : '<button class="act" id="goFree"><span class="e">✏️</span>마음대로 쓰기</button>')+
           '<button class="act" id="goDex"><span class="e">📖</span>동물 도감</button>'+
           '<button class="act" id="goLv"><span class="e">'+track().em+'</span>게임 바꾸기</button>'+
@@ -832,6 +1062,7 @@ function vHome(){
   el('goQuest').onclick = vQuest;
   if(el('goSpeed')) el('goSpeed').onclick = startSpeed;
   if(el('goFree')) el('goFree').onclick = function(){ startFree(); };
+  if(el('goClkFree')) el('goClkFree').onclick = startClockFree;
   el('s-home').querySelectorAll('[data-lv]').forEach(function(b){ b.onclick = function(){ startLevel(+b.dataset.lv); }; });
   show('s-home');
 }
@@ -887,7 +1118,9 @@ function nextQ(){
   if(RUN.i >= RUN.n) return finish();
   var t = RUN.lv.t;
   if(t==='trace') qTrace(); else if(t==='count') qCount(); else if(t==='group') qGroup();
-  else if(t==='order') qOrder(); else if(t==='cmp') qCmp(); else qMul();   // mul·rev·ar·review 는 자판
+  else if(t==='order') qOrder(); else if(t==='cmp') qCmp(); else if(t==='clk') qClock();
+  else if(t==='review' && clkFromTag(RUN.lv.pool[RUN.i % RUN.lv.pool.length])) qClock(clkFromTag(RUN.lv.pool[RUN.i % RUN.lv.pool.length]));
+  else qMul();   // mul·rev·ar·review 는 자판
 }
 function right(points){
   RUN.ok++; kid().food += (points||1); questEvent('right', {}); save(); sGood(); flash('⭐');
@@ -1051,7 +1284,7 @@ function qFromTag(t){
   if((m = t.match(/^(\d+)%(\d+)$/))) return {txt:m[1]+' ÷ '+m[2]+' 의 나머지 =', ans:m[1]%m[2], tag:t};
   return null;
 }
-function reviewPool(x){ return Object.keys(x.miss).filter(function(t){ return x.miss[t] > 0 && qFromTag(t); })
+function reviewPool(x){ return Object.keys(x.miss).filter(function(t){ return x.miss[t] > 0 && (qFromTag(t) || clkFromTag(t)); })
   .sort(function(a,b){ return x.miss[b]-x.miss[a]; }); }
 function startReview(){
   var pool = reviewPool(kid());
