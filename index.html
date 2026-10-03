@@ -127,7 +127,8 @@ h1{font-size:clamp(28px,6vw,46px);margin:8px 0 4px;letter-spacing:-1px}
 .tbtns{display:flex;gap:12px}
 
 /* 🎮 게임 */
-.act.game{grid-column:1/-1;background:linear-gradient(90deg,#ffe08a,#ffb4c8);border-color:#ffc23d}
+.act.game2{background:linear-gradient(90deg,#ffe08a,#ffb4c8);border-color:#ffc23d}
+.act.quest{background:linear-gradient(90deg,#d6f5e3,#c8e7ff);border-color:#7cc4a0}
 .mem{display:grid;gap:12px;width:min(96vw,640px)}
 .card{aspect-ratio:3/4;border-radius:20px;background:linear-gradient(135deg,#ffb4c8,#ff8fb1);border:4px solid #fff;box-shadow:0 6px 0 #e9739a;
   font-size:clamp(34px,8vw,64px);transition:transform .25s}
@@ -462,14 +463,26 @@ YU_LEVELS.push({t:'count', max:10, label:'🍎10', name:'10까지 세기'});
 YU_LEVELS.push({t:'group', by:2, label:'2씩', name:'2개씩 묶어 세기'});
 YU_LEVELS.push({t:'group', by:5, label:'5씩', name:'5개씩 묶어 세기'});
 YU_LEVELS.push({t:'group', by:3, label:'3씩', name:'3개씩 묶어 세기'});
+/* 10/3 「모든 게임에 다양한 수준」 — 뒤에 덧붙여서 예전 별 번호는 그대로 */
+YU_LEVELS.push({t:'order', max:10, label:'1□3', name:'수 순서 (10까지)'});
+YU_LEVELS.push({t:'cmp',   max:10, label:'>',   name:'더 큰 수 고르기 (10까지)'});
+YU_LEVELS.push({t:'order', max:20, label:'11□',  name:'수 순서 (20까지)'});
+YU_LEVELS.push({t:'cmp',   max:50, label:'>50', name:'더 큰 수 고르기 (50까지)'});
+YU_LEVELS.push({t:'order', max:100, step:10, label:'10씩', name:'10씩 뛰어 세기'});
 
 /* 구구단 길 — 8~9세: 구구단 단별 → 섞기 → 거꾸로 */
-var YA_LEVELS = [];
-[2,5,3,4,6,7,8,9].forEach(function(n){ YA_LEVELS.push({t:'mul', dans:[n], label:n+'단', name:'구구단 '+n+'단'}); });
+var YA_LEVELS = [];    /* 단마다 「순서대로(구구단 노래처럼) → 섞어서」 */
+[2,5,3,4,6,7,8,9].forEach(function(n){
+  YA_LEVELS.push({t:'mul', dans:[n], seq:true, label:n+'단▶', name:'구구단 '+n+'단 순서대로'});
+  YA_LEVELS.push({t:'mul', dans:[n], label:n+'단', name:'구구단 '+n+'단 섞어서'});
+});
+YA_LEVELS.push({t:'mul', dans:[0,1,10], label:'0·1·10', name:'0단·1단·10단'});
 YA_LEVELS.push({t:'mul', dans:[2,3,4,5], label:'섞기1', name:'2~5단 섞기'});
 YA_LEVELS.push({t:'mul', dans:[6,7,8,9], label:'섞기2', name:'6~9단 섞기'});
 YA_LEVELS.push({t:'mul', dans:[2,3,4,5,6,7,8,9], label:'전체', name:'구구단 전체'});
 YA_LEVELS.push({t:'rev', dans:[2,3,4,5,6,7,8,9], label:'□×', name:'거꾸로 구구단'});
+YA_LEVELS.push({t:'ar', op:'m21', label:'12×3', name:'두 자리 × 한 자리'});
+YA_LEVELS.push({t:'ar', op:'m21c', label:'27×4', name:'두 자리 × 한 자리 · 받아올림'});
 
 /* 더하기·빼기 길 */
 var ADD_LEVELS = [   /* 10/3 사용자: "1자리·2자리·3자리 등 다양한 수준" — 받아올림/내림을 단계로 나눔. 두 자리부터는 세로셈 */
@@ -496,7 +509,11 @@ var FAST_LEVELS = [
   {t:'ar', op:'mix1', label:'섞기1', name:'더하기·빼기 섞기'},
   {t:'ar', op:'mix2', label:'섞기2', name:'곱셈까지 섞기'},
   {t:'ar', op:'div',  label:'÷',     name:'나눗셈 (구구단 거꾸로)'},
-  {t:'ar', op:'mix3', label:'섞기3', name:'+ − × ÷ 모두'}
+  {t:'ar', op:'mix3', label:'섞기3', name:'+ − × ÷ 모두'},
+  {t:'ar', op:'d21',  label:'84÷4', name:'두 자리 ÷ 한 자리'},
+  {t:'ar', op:'mod',  label:'나머지', name:'나눗셈의 나머지 (17÷5)'},
+  {t:'ar', op:'mixop',label:'+×',   name:'혼합 계산 (곱셈 먼저: 3+4×2)'},
+  {t:'ar', op:'paren',label:'( )',  name:'괄호 먼저 ((3+4)×2)'}
 ];
 /* 수준(길) — 아이가 스스로 고른다. 수준마다 진도는 따로 저장 (범용: 다른 아이도 쓸 수 있게) */
 var TRACKS = {
@@ -557,6 +574,13 @@ function load(){
     x.tickets = x.tickets || 0;      // 🎟 게임 티켓
   });
   /* 10/3 더하기·빼기 단계가 9 → 17개로 늘어 순서가 바뀜 — 예전 별을 비슷한 새 단계로 옮긴다 */
+  if(!d.mulv2){    /* 구구단이 12 → 23단계로 (단마다 순서대로/섞어서) — 예전 별을 «섞어서» 단계로 */
+    var MMAP = [1,3,5,7,9,11,13,15,17,18,19,20];
+    d.order.forEach(function(k){ var st = d.kids[k].stars && d.kids[k].stars.mul; if(!st) return; var n = {};
+      Object.keys(st).forEach(function(i){ var ni = MMAP[+i]; if(ni!=null){ n[ni] = Math.max(n[ni]||0, st[i]); n[ni-1] = Math.max(n[ni-1]||0, ni <= 15 ? st[i] : 0); } });
+      Object.keys(n).forEach(function(i){ if(!n[i]) delete n[i]; }); d.kids[k].stars.mul = n; });
+    d.mulv2 = 1;
+  }
   if(!d.addv2){
     var AMAP = [0,0,2,4,1,3,6,7,9];
     d.order.forEach(function(k){ var st = d.kids[k].stars && d.kids[k].stars.add; if(!st) return; var n = {};
@@ -785,12 +809,13 @@ function vHome(){
         '<button class="big feed" id="feedB"'+(x.food? '' : ' style="opacity:.5"')+'>🍖 먹이 주기</button></div>'+
       '<div class="side">'+
         '<div class="path"><h3>'+esc(kid().name)+'의 놀이 길</h3><div class="nodes">'+L.map(function(lv, i){
-          var st = stars()[i]||0, open = i <= next;
+          var st = stars()[i]||0, open = i <= next, crown = ((x.master||{})[x.track+':'+i]||0) >= 3;
           return '<button class="node'+(open?' open':'')+(st?' done':'')+(i===next?' next':'')+'" data-lv="'+i+'"'+(open?'':' disabled')+'>'+
-            (open ? lv.label : '🔒')+(st ? '<span class="st">'+'⭐'.repeat(st)+'</span>' : '')+'</button>';
+            (open ? lv.label : '🔒')+(crown ? '<span class="st">👑</span>' : st ? '<span class="st">'+'⭐'.repeat(st)+'</span>' : '')+'</button>';
         }).join('')+'</div></div>'+
         '<div class="acts">'+
-          '<button class="act game" id="goGame"><span class="e">🎮</span>게임 시간 · 🎟 '+(x.tickets||0)+'장</button>'+
+          '<button class="act quest" id="goQuest"><span class="e">📜</span>오늘의 퀘스트 '+questsToday().list.filter(function(q){ return q.done; }).length+'/3</button>'+
+          '<button class="act game2" id="goGame"><span class="e">🎮</span>게임 · 🎟 '+(x.tickets||0)+'</button>'+
           '<button class="act" id="goNext"><span class="e">▶</span>'+(next < L.length ? '다음 놀이' : '복습')+'</button>'+
           (track().extra==='speed' ? '<button class="act" id="goSpeed"><span class="e">⏱</span>스피드'+(x.best[x.track]?' · 최고 '+x.best[x.track]:'')+'</button>'
                     : '<button class="act" id="goFree"><span class="e">✏️</span>마음대로 쓰기</button>')+
@@ -804,6 +829,7 @@ function vHome(){
   el('goNext').onclick = function(){ startLevel(Math.min(next, L.length-1)); };
   el('goDex').onclick = vDex;
   el('goGame').onclick = vGames;
+  el('goQuest').onclick = vQuest;
   if(el('goSpeed')) el('goSpeed').onclick = startSpeed;
   if(el('goFree')) el('goFree').onclick = function(){ startFree(); };
   el('s-home').querySelectorAll('[data-lv]').forEach(function(b){ b.onclick = function(){ startLevel(+b.dataset.lv); }; });
@@ -825,7 +851,7 @@ function hearts(em){
 function feed(){
   var x = kid(), p = pet(); if(!x.food) { say('문제를 풀면 먹이를 받아요!'); return toast('문제를 풀면 🍖 먹이를 받아요'); }
   var before = petStage(p), n = Math.min(x.food, 5);
-  x.food -= n; p.xp += n; save();
+  x.food -= n; p.xp += n; questEvent('feed', {n:n}); save();
   hearts('🍖'); sPop();
   var after = petStage(p);
   if(after > before) evolve(before, after); else vHome();
@@ -849,7 +875,7 @@ function evolve(b, a){
 var RUN = null;   // {lv, i, n, ok, miss, items}
 function startLevel(i){
   var lv = track().levels[i]; if(!lv) return;
-  RUN = {lv:lv, idx:i, i:0, ok:0, wrong:0, n:(lv.t==='trace' ? 3 : 8), first:true};
+  RUN = {lv:lv, idx:i, i:0, ok:0, wrong:0, n:(lv.t==='trace' ? 3 : lv.seq ? 9 : 8), first:true};
   nextQ();
 }
 function qTop(){
@@ -860,10 +886,11 @@ function bindTop(){ el('qX').onclick = function(){ stopRhythm(); vHome(); }; }
 function nextQ(){
   if(RUN.i >= RUN.n) return finish();
   var t = RUN.lv.t;
-  if(t==='trace') qTrace(); else if(t==='count') qCount(); else if(t==='group') qGroup(); else qMul();   // mul·rev·ar 은 자판
+  if(t==='trace') qTrace(); else if(t==='count') qCount(); else if(t==='group') qGroup();
+  else if(t==='order') qOrder(); else if(t==='cmp') qCmp(); else qMul();   // mul·rev·ar·review 는 자판
 }
 function right(points){
-  RUN.ok++; kid().food += (points||1); save(); sGood(); flash('⭐');
+  RUN.ok++; kid().food += (points||1); questEvent('right', {}); save(); sGood(); flash('⭐');
   RUN.i++; setTimeout(nextQ, 650);
 }
 function wrong(tag){
@@ -877,20 +904,82 @@ function finish(){
     var good = (RUN.q||[]).filter(function(v){ return v; }).length;
     stars = (RUN.wrong === 0 && good >= 2) ? 3 : RUN.wrong <= 2 ? 2 : 1;
   } else stars = acc >= .9 ? 3 : acc >= .7 ? 2 : 1;
-  var x = kid(), S = window.stars(), prev = S[RUN.idx]||0, bonus = stars*2 + (prev ? 0 : 3), before = totalStars(x), rkB = rankOf(x)[2];
-  if(stars > prev) S[RUN.idx] = stars;
+  var x = kid(), S = window.stars(), prev = RUN.idx >= 0 ? (S[RUN.idx]||0) : 3, bonus = stars*2 + (prev ? 0 : 3), before = totalStars(x), rkB = rankOf(x)[2];
+  if(RUN.idx >= 0 && stars > prev) S[RUN.idx] = stars;
+  /* 👑 마스터 — 같은 단계를 별 3개로 3번 */
+  var mNote = '';
+  if(RUN.idx >= 0 && stars === 3){ x.master = x.master || {}; var MK = x.track+':'+RUN.idx; x.master[MK] = (x.master[MK]||0) + 1;
+    mNote = x.master[MK] === 3 ? '<div class="unlock">👑 <b>'+RUN.lv.name+'</b> 마스터! 왕관을 받았어요!</div>' : x.master[MK] < 3 ? '<p class="sub">👑 마스터까지 별 3개 '+(3-x.master[MK])+'번 더!</p>' : ''; }
+  questEvent('finish', {stars:stars, isNew:!prev && RUN.idx >= 0, review:RUN.lv.t==='review'});
   var tk = stars === 3 ? 2 : 1; x.tickets = (x.tickets||0) + tk;
   x.food += bonus; save(); sWin();
   say(praise()+' 별 '+stars+'개!');
   el('s-done').innerHTML =
     '<h1>'+RUN.lv.name+' 끝!</h1><div class="stars">'+'⭐'.repeat(stars)+'<span style="opacity:.2">'+'⭐'.repeat(3-stars)+'</span></div>'+
-    '<p class="reward">🍖 먹이 '+(RUN.ok + bonus)+'개 · 🎟 게임 티켓 '+tk+'장 받았어요!</p>'+unlockNote(before, totalStars(x), rkB, rankOf(x))+
+    '<p class="reward">🍖 먹이 '+(RUN.ok + bonus)+'개 · 🎟 게임 티켓 '+tk+'장 받았어요!</p>'+mNote+unlockNote(before, totalStars(x), rkB, rankOf(x))+
     '<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">'+
       '<button class="big" id="dFeed">'+esc(pet().name)+'에게 먹이 주러 가기</button>'+
       '<button class="ghost" id="dAgain">한 번 더</button></div>';
   el('dFeed').onclick = vHome;
-  el('dAgain').onclick = function(){ startLevel(RUN.idx); };
+  el('dAgain').onclick = function(){ if(RUN.idx < 0) startReview(); else startLevel(RUN.idx); };
   show('s-done');
+}
+
+/* ═══════════════ 📜 오늘의 퀘스트 (반복 숙달) ═══════════════
+   매일 3개 — 지금 게임에 맞춰 고른다. 다 하면 보너스. 오답 복습은 틀린 문제가 있을 때만 */
+function questsToday(){
+  var x = kid(), d = today();
+  if(x.quest && x.quest.day === d && x.quest.track === x.track) return x.quest;
+  var T = track(), pool = [];
+  var n = [15, 20, 25][rnd(0,2)];
+  pool.push({k:'right', t:'문제 '+n+'개 맞히기', goal:n});
+  pool.push({k:'stars3', t:'별 3개 받기 2번', goal:2});
+  pool.push({k:'newLevel', t:'새 단계 1개 깨기', goal:1});
+  pool.push({k:'feed', t:'동물에게 먹이 30개 주기', goal:30});
+  if(T.extra === 'speed'){ var b = x.best[x.track]||0; pool.push({k:'speed', t:'⏱ 스피드에서 '+Math.max(5, b ? b-2 : 5)+'개 이상 맞히기', goal:Math.max(5, b ? b-2 : 5), max:true}); }
+  if(reviewPool(x).length >= 3) pool.push({k:'review', t:'🔁 오답 복습 1번 끝내기', goal:1});
+  var keep = [];
+  if(reviewPool(x).length >= 3) keep.push(pool.pop());          // 오답이 쌓였으면 복습은 꼭 넣는다
+  pool.sort(function(){ return Math.random()-.5; });
+  while(keep.length < 3 && pool.length) keep.push(pool.shift());
+  keep.forEach(function(q){ q.p = 0; q.done = false; });
+  x.quest = {day:d, track:x.track, list:keep, bonus:false}; save();
+  return x.quest;
+}
+function questEvent(k, e){
+  if(!K || !kid()) return;
+  var Q = questsToday(), changed = false;
+  Q.list.forEach(function(q){
+    if(q.done) return;
+    var add = 0;
+    if(q.k==='right' && k==='right') add = 1;
+    if(q.k==='stars3' && k==='finish' && e.stars===3) add = 1;
+    if(q.k==='newLevel' && k==='finish' && e.isNew) add = 1;
+    if(q.k==='review' && k==='finish' && e.review) add = 1;
+    if(q.k==='feed' && k==='feed') add = e.n;
+    if(q.k==='speed' && k==='speed'){ q.p = Math.max(q.p, e.score); changed = true; }
+    if(add){ q.p += add; changed = true; }
+    if(q.p >= q.goal){ q.done = true; q.p = q.goal; var x = kid(); x.tickets++; x.food += 10;
+      setTimeout(function(){ toast('📜 퀘스트 완료! '+q.t+' → 🎟 1 · 🍖 10'); say('퀘스트 완료!'); }, 900); }
+  });
+  if(!Q.bonus && Q.list.every(function(q){ return q.done; })){ Q.bonus = true; var x2 = kid(); x2.tickets += 2; x2.food += 30;
+    setTimeout(function(){ toast('🎁 오늘의 퀘스트 모두 완료! 보너스 🎟 2 · 🍖 30'); say('오늘의 퀘스트를 모두 끝냈어요! 정말 대단해요!'); }, 2200); }
+  if(changed) save();
+}
+function vQuest(){
+  var Q = questsToday(), x = kid(), pool = reviewPool(x);
+  el('s-play').innerHTML = '<div class="top"><button class="ghost" id="qbBack">◀ 홈</button><span class="sp"></span><span class="chip">'+track().em+' '+track().n+'</span></div>'+
+    '<h1>📜 오늘의 퀘스트</h1><p class="sub">매일 새 퀘스트! 하나 끝낼 때마다 🎟 1 · 🍖 10, 셋 다 끝내면 🎁 보너스</p>'+
+    '<div class="facts">'+Q.list.map(function(q){
+      return '<div class="fact'+(q.done?'':'')+'" style="align-items:center"><div class="fe">'+(q.done ? '✅' : '📜')+'</div><div style="flex:1"><b>'+q.t+'</b>'+
+        '<div class="prog" style="margin-top:8px"><i style="width:'+Math.round(Math.min(1, q.p/q.goal)*100)+'%"></i></div><p>'+Math.min(q.p, q.goal)+' / '+q.goal+'</p></div></div>';
+    }).join('')+'</div>'+
+    '<div class="pcard" style="margin-top:14px"><h3>🔁 오답 노트</h3><p class="sub" style="margin:0 0 10px;text-align:left">자주 틀린 문제 '+pool.length+'개'+
+      (pool.length ? ' · '+pool.slice(0,6).join(', ') : ' — 없어요! 👍')+'</p>'+
+      (pool.length ? '<button class="big" id="qbRev">🔁 오답 복습 시작</button>' : '')+'</div>';
+  el('qbBack').onclick = vHome;
+  if(el('qbRev')) el('qbRev').onclick = startReview;
+  show('s-play');
 }
 
 /* 새로 열린 과·분류·등급 축하 */
@@ -907,7 +996,7 @@ function unlockNote(b, a, rkB, rkA){
 function rnd(a, b){ return a + Math.floor(Math.random()*(b-a+1)); }
 function genQ(lv){
   if(lv.t==='mul' || lv.t==='rev'){
-    var a = lv.dans[Math.floor(Math.random()*lv.dans.length)], b = rnd(1,9);
+    var a = lv.dans[Math.floor(Math.random()*lv.dans.length)], b = (lv.seq && RUN) ? (RUN.i % 9) + 1 : rnd(1,9);
     return lv.t==='rev' ? {txt:a+' × □ = '+(a*b), ans:b, tag:a+'×'+b, say:kor(a)+' 곱하기 '+kor(b)+'는 '+kor(a*b)}
                         : {txt:a+' × '+b+' =', ans:a*b, tag:a+'×'+b, say:kor(a)+' '+kor(b)+' '+kor(a*b)};   // 구구단 노래처럼 「삼 사 십이」
   }
@@ -932,6 +1021,13 @@ function genQ(lv){
   if(op==='a33'){ var c3 = noCarry(3); return V(c3[0],'+',c3[1],c3[0]+c3[1]); }
   if(op==='a33c'){ var p3 = rnd(2,9), q3 = rnd(10-p3, 9); x = rnd(1,5)*100 + rnd(0,9)*10 + p3; y = rnd(1,4)*100 + rnd(0,9)*10 + q3; return V(x,'+',y,x+y); }
   if(op==='s33'){ x = rnd(300,999); y = rnd(101, x-50); return V(x,'−',y,x-y); }
+  if(op==='m21'){ x = rnd(1,4)*10 + rnd(1,2); y = rnd(2,3); if((x%10)*y > 9) x -= (x%10) - 1; return {txt:x+' × '+y+' =', ans:x*y, tag:x+'×'+y}; }
+  if(op==='m21c'){ x = rnd(12,49); y = rnd(3,9); if((x%10)*y < 10) x = Math.floor(x/10)*10 + rnd(Math.ceil(10/y), 9); return {txt:x+' × '+y+' =', ans:x*y, tag:x+'×'+y}; }
+  if(op==='d21'){ y = rnd(2,9); var qq = rnd(11, Math.floor(99/y)); return {txt:(y*qq)+' ÷ '+y+' =', ans:qq, tag:(y*qq)+'÷'+y}; }
+  if(op==='mod'){ y = rnd(3,9); x = y*rnd(2,9) + rnd(1,y-1); return {txt:x+' ÷ '+y+' 의 나머지 =', ans:x%y, tag:x+'%'+y}; }
+  if(op==='mixop'){ var a1 = rnd(1,20), b1 = rnd(2,9), c1 = rnd(2,9); return Math.random()<.5 ? {txt:a1+' + '+b1+' × '+c1+' =', ans:a1+b1*c1, tag:a1+'+'+b1+'×'+c1}
+                                                   : {txt:b1+' × '+c1+' − '+Math.min(a1, b1*c1)+' =', ans:b1*c1-Math.min(a1,b1*c1), tag:b1+'×'+c1+'-'+Math.min(a1,b1*c1)}; }
+  if(op==='paren'){ var a2 = rnd(1,9), b2 = rnd(1,9), c2 = rnd(2,6); return {txt:'('+a2+' + '+b2+') × '+c2+' =', ans:(a2+b2)*c2, tag:'('+a2+'+'+b2+')×'+c2}; }
   if(op==='blank'){ y = rnd(11,49); var t = rnd(y+5, 99); return {txt:'□ + '+y+' = '+t, ans:t-y, tag:'□+'+y+'='+t}; }
   if(op==='+'){ x = rnd(0, lv.max); y = rnd(0, lv.max - x); return {txt:x+' + '+y+' =', ans:x+y, tag:x+'+'+y}; }
   if(op==='-'){ x = rnd(1, lv.max); y = rnd(0, x); return {txt:x+' − '+y+' =', ans:x-y, tag:x+'-'+y}; }
@@ -943,9 +1039,29 @@ function genQ(lv){
   if(op==='div'){ x = rnd(2,9); y = rnd(2,9); return {txt:(x*y)+' ÷ '+x+' =', ans:y, tag:(x*y)+'÷'+x}; }
   return {txt:'1 + 1 =', ans:2, tag:'1+1'};
 }
+/* 오답 노트 → 문제로 되살리기 (tag 모양: 7×8 · 27+5 · 32-7 · □+3 · □+27=45 · 56÷8 · 17%5) */
+function qFromTag(t){
+  var m;
+  if((m = t.match(/^(\d+)×(\d+)$/))) return {txt:m[1]+' × '+m[2]+' =', ans:m[1]*m[2], tag:t};
+  if((m = t.match(/^(\d+)\+(\d+)$/))) return {txt:m[1]+' + '+m[2]+' =', ans:+m[1]+ +m[2], tag:t};
+  if((m = t.match(/^(\d+)-(\d+)$/))) return {txt:m[1]+' − '+m[2]+' =', ans:m[1]-m[2], tag:t};
+  if((m = t.match(/^□\+(\d+)=(\d+)$/))) return {txt:'□ + '+m[1]+' = '+m[2], ans:m[2]-m[1], tag:t};
+  if((m = t.match(/^□\+(\d+)$/))) return {txt:'□ + '+m[1]+' = 10', ans:10-m[1], tag:t};
+  if((m = t.match(/^(\d+)÷(\d+)$/))) return {txt:m[1]+' ÷ '+m[2]+' =', ans:m[1]/m[2], tag:t};
+  if((m = t.match(/^(\d+)%(\d+)$/))) return {txt:m[1]+' ÷ '+m[2]+' 의 나머지 =', ans:m[1]%m[2], tag:t};
+  return null;
+}
+function reviewPool(x){ return Object.keys(x.miss).filter(function(t){ return x.miss[t] > 0 && qFromTag(t); })
+  .sort(function(a,b){ return x.miss[b]-x.miss[a]; }); }
+function startReview(){
+  var pool = reviewPool(kid());
+  if(pool.length < 1){ say('틀린 문제가 없어요! 대단해요!'); return toast('복습할 문제가 없어요 👍'); }
+  RUN = {lv:{t:'review', name:'오답 복습', pool:pool.slice(0, 10)}, idx:-1, i:0, ok:0, wrong:0, n:Math.min(8, pool.length), first:true};
+  nextQ();
+}
 /* ── 자판 문제 (구구단·더하기빼기·섞기) ── */
 function qMul(){
-  var q = genQ(RUN.lv), ans = q.ans, txt = q.txt, tag = q.tag, input = '', tries = 0;
+  var q = RUN.lv.t==='review' ? qFromTag(RUN.lv.pool[RUN.i % RUN.lv.pool.length]) : genQ(RUN.lv), ans = q.ans, txt = q.txt, tag = q.tag, input = '', tries = 0;
   function draw(){
     var qhtml = q.v ? '<div class="vert"><div>'+q.v[0]+'</div><div><span class="vo">'+(q.v[1]==='+'?'+':'−')+'</span>'+q.v[2]+'</div><div class="vbar"></div><div class="vans">'+(input||'&nbsp;')+'</div></div>'
                     : '<div class="qtext">'+txt+'</div><div class="ansline">'+(input||'&nbsp;')+'</div>';
@@ -967,7 +1083,11 @@ function qMul(){
   }
   function check(){
     if(!input) return;
-    if(+input === ans){ if(q.say) say(q.say, 1.2); right(tries ? 1 : 2); }
+    if(+input === ans){
+      if(q.say) say(q.say, 1.2);
+      if(RUN.lv.t==='review' && !tries){ var mm = kid().miss; mm[tag] = Math.max(0, (mm[tag]||0) - 1); if(!mm[tag]) delete mm[tag]; save(); }   // 맞히면 오답 노트에서 줄어든다
+      right(tries ? 1 : 2);
+    }
     else { wrong(tag); tries++; input = ''; draw(); if(tries >= 2){ toast('정답은 '+ans); say('정답은 '+ans); } }
   }
   draw(); show('s-play');
@@ -977,9 +1097,10 @@ function qMul(){
 function startSpeed(){
   /* 스피드 — 지금 수준에서 «깬 단계까지» 섞어서 낸다 */
   var x = kid(), L = track().levels, S = stars(), pool = [];
-  L.forEach(function(lv, i){ if(S[i] || i===0) pool.push(lv); });
+  L.forEach(function(lv, i){ if((S[i] || i===0) && /^(mul|rev|ar)$/.test(lv.t)) pool.push(lv); });
+  if(!pool.length) pool = [L.filter(function(lv){ return /^(mul|rev|ar)$/.test(lv.t); })[0]];
   var left = 60, score = 0, combo = 0, input = '', q, timer, best = x.best[x.track]||0;
-  function newQ(){ q = genQ(pool[Math.floor(Math.random()*pool.length)]); input = ''; }
+  function newQ(){ var lv = pool[Math.floor(Math.random()*pool.length)]; q = genQ(Object.assign({}, lv, {seq:false})); input = ''; }   // 스피드는 순서대로 단계도 섞어서
   function draw(){
     el('s-play').innerHTML =
       '<div class="qtop"><button class="ghost" id="spX">✕</button><span class="timer">⏱ '+left+'</span><span class="sp" style="flex:1"></span>'+
@@ -1009,6 +1130,7 @@ function startSpeed(){
     if(left <= 0){
       clearInterval(timer);
       var rec = score > best; if(rec){ best = score; x.best[x.track] = score; }
+      questEvent('speed', {score:score, rec:rec});
       x.food += score; save(); sWin();
       say(rec ? '새 기록! '+cnt(score)+' 개!' : cnt(score)+' 개 맞혔어요!');
       el('s-done').innerHTML = '<h1>'+(rec ? '🏆 새 기록!' : '⏱ 끝!')+'</h1><div class="qtext">'+score+'개</div>'+
@@ -1032,6 +1154,34 @@ function qCount(){
   bindTop(); say('몇 개일까?');
   el('s-play').querySelectorAll('[data-o]').forEach(function(b){
     b.onclick = function(){ if(+b.dataset.o === n){ say(cnt(n)+' 개! '+praise()); right(); } else { wrong(); say('다시 세어 볼까?'); b.style.visibility = 'hidden'; } };
+  });
+  show('s-play');
+}
+/* ── 수 순서: 3, 4, □, 6 ── */
+function qOrder(){
+  var step = RUN.lv.step || 1, max = RUN.lv.max, len = 4, start = step===1 ? rnd(step===1 && max>10 ? 10 : 0, max-len*step) : 0;
+  if(step > 1) start = step*rnd(0, Math.floor(max/step) - len);
+  var seq = []; for(var k=0;k<len;k++) seq.push(start + k*step);
+  var hole = rnd(1, len-1), ans = seq[hole];
+  var opts = [ans]; while(opts.length < 3){ var o = ans + step*[-2,-1,1,2][rnd(0,3)]; if(o >= 0 && opts.indexOf(o)<0) opts.push(o); }
+  opts.sort(function(){ return Math.random()-.5; });
+  el('s-play').innerHTML = qTop()+'<div class="qbox"><div class="qtext" style="letter-spacing:0">'+seq.map(function(v,i){ return i===hole ? '<span style="color:#3f6ad8">□</span>' : v; }).join(' , ')+'</div>'+
+    '<div class="sub">빈칸에 들어갈 수는?</div><div class="choices">'+opts.map(function(o){ return '<button data-o="'+o+'">'+o+'</button>'; }).join('')+'</div></div>';
+  bindTop(); say('빈칸에 들어갈 수는?');
+  el('s-play').querySelectorAll('[data-o]').forEach(function(b){
+    b.onclick = function(){ if(+b.dataset.o === ans){ say(seq.map(kor).join(', ')); right(); } else { wrong('순서'+seq.join(',')); b.style.visibility = 'hidden'; } };
+  });
+  show('s-play');
+}
+/* ── 더 큰 수 고르기 ── */
+function qCmp(){
+  var max = RUN.lv.max, a = rnd(0, max), b = rnd(0, max); while(b === a) b = rnd(0, max);
+  el('s-play').innerHTML = qTop()+'<div class="qbox"><div class="sub" style="font-size:clamp(20px,5vw,28px)">더 큰 수를 눌러요!</div>'+
+    '<div class="choices">'+[a,b].map(function(o){ return '<button data-o="'+o+'" style="width:clamp(120px,34vw,200px)">'+o+'</button>'; }).join('')+'</div>'+
+    (max <= 10 ? '<div class="objs" style="font-size:clamp(22px,6vw,36px)">'+[a,b].map(function(n){ return '<div>'+(Array(n+1).join('🍓')||'·')+'</div>'; }).join('')+'</div>' : '')+'</div>';
+  bindTop(); say('더 큰 수를 눌러요!');
+  el('s-play').querySelectorAll('[data-o]').forEach(function(bt){
+    bt.onclick = function(){ if(+bt.dataset.o === Math.max(a,b)){ say(kor(Math.max(a,b))+'가 더 커요!'); right(); } else { wrong(a+'?'+b); bt.style.visibility = 'hidden'; } };
   });
   show('s-play');
 }
