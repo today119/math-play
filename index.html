@@ -167,6 +167,11 @@ h1{font-size:clamp(28px,6vw,46px);margin:8px 0 4px;letter-spacing:-1px}
 .dex .em{font-size:60px}
 .dex .no{filter:grayscale(1) brightness(.2);opacity:.35}
 
+.vert{font-size:clamp(44px,12vw,84px);font-weight:900;text-align:right;line-height:1.15;letter-spacing:.12em;font-variant-numeric:tabular-nums;min-width:4.2em}
+.vert .vo{float:left;margin-right:.3em} .vbar{border-top:6px solid var(--ink);margin:4px 0}
+.vert .vans{color:#3f6ad8;min-height:1.15em}
+.unlock{background:linear-gradient(90deg,#fff3c4,#ffe1ec);border:3px solid #ffc23d;border-radius:20px;padding:12px 18px;
+  font-size:clamp(16px,4vw,22px);text-align:center;margin:6px 0 14px;line-height:1.6;animation:pulse 1.2s 3}
 /* 생물 그림 (1em 크기) */
 .ci{display:inline-block;width:1em;height:1em;vertical-align:middle}
 img.ci{object-fit:contain}
@@ -203,6 +208,39 @@ img.ci{object-fit:contain}
 .pin{display:flex;gap:10px;font-size:40px;margin:10px 0 16px}
 .pin span{width:52px;height:64px;border-radius:14px;background:#fff;border:3px solid var(--line);display:flex;align-items:center;justify-content:center}
 select,input{font:inherit;font-size:18px;padding:8px 10px;border-radius:12px;border:2px solid var(--line);background:#fff;-webkit-user-select:text;user-select:text}
+/* ══ 반응형 (10/3 사용자: "고정이 아닌 기기 크기대로 유동적으로") ══
+   글자·그림·카드 크기를 화면 폭(vw)에 따라 늘고 줄게. 폰(390)·아이패드 세로(820)·가로(1180) 모두 */
+.clsgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:clamp(6px,1.4vw,12px);width:100%;max-width:900px;margin-bottom:12px}
+.clsgrid .world{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  padding:clamp(6px,1.4vw,12px) 2px;font-size:clamp(12px,2.6vw,20px);border-radius:clamp(12px,2.4vw,20px);line-height:1.15;word-break:keep-all}
+.clsgrid .world .ce{font-size:clamp(20px,4.6vw,34px)}
+.animals{grid-template-columns:repeat(auto-fill,minmax(clamp(120px,30vw,170px),1fr));gap:clamp(8px,2vw,14px)}
+.ani{padding:clamp(8px,2vw,14px);border-radius:clamp(16px,3.4vw,26px)}
+.ani .em{font-size:clamp(48px,12vw,76px)}
+.ani b{font-size:clamp(16px,3.6vw,22px)} .ani small{font-size:clamp(11px,2.6vw,14px)}
+.kids{gap:clamp(10px,3vw,40px)}
+.kid{width:clamp(140px,40vw,260px);border-width:clamp(4px,1vw,6px);border-radius:clamp(22px,6vw,36px)}
+.kid .em{font-size:clamp(56px,15vw,120px)} .kid b{font-size:clamp(22px,6vw,38px)} .kid small{font-size:clamp(12px,3.2vw,16px);line-height:1.4}
+.pet{font-size:clamp(96px,26vw,190px)}
+.petbox{min-height:clamp(250px,48vw,330px);border-radius:clamp(22px,5vw,34px)}
+.petname{font-size:clamp(20px,5vw,28px)} .stage{font-size:clamp(12px,3vw,16px)}
+.dex{grid-template-columns:repeat(auto-fill,minmax(clamp(96px,26vw,150px),1fr));gap:clamp(6px,1.8vw,12px)}
+.dex button{padding:clamp(6px,1.6vw,12px);border-radius:clamp(14px,3vw,22px)}
+.dex .em{font-size:clamp(40px,10vw,60px)} .dex b{font-size:clamp(13px,3.2vw,17px)}
+.dexcls h3{font-size:clamp(17px,4vw,22px)}
+.evorow{font-size:clamp(30px,8vw,44px)}
+.fact .fe{font-size:clamp(40px,10vw,56px)} .fact b{font-size:clamp(17px,4vw,22px)} .fact p{font-size:clamp(14px,3.4vw,17px)}
+.node{width:clamp(52px,13vw,72px);height:clamp(52px,13vw,72px);font-size:clamp(16px,4vw,22px)}
+.act{font-size:clamp(15px,3.8vw,20px);min-height:clamp(56px,13vw,70px)} .act .e{font-size:clamp(22px,5.6vw,30px)}
+.chip{font-size:clamp(14px,3.4vw,18px);padding:clamp(4px,1vw,6px) clamp(8px,2vw,12px)}
+.big{font-size:clamp(18px,4.4vw,28px);padding:clamp(12px,2.6vw,16px) clamp(18px,4.6vw,26px)}
+.pad{width:min(100%,clamp(260px,70vw,460px))}
+.pad button{font-size:clamp(26px,7vw,42px);padding:clamp(10px,2.4vw,14px) 0}
+.qtext{font-size:clamp(40px,12vw,96px)} .ansline{font-size:clamp(40px,11vw,90px)}
+.choices button{width:clamp(84px,24vw,150px);font-size:clamp(34px,10vw,72px)}
+.objs{font-size:clamp(32px,9vw,64px)}
+h1{font-size:clamp(24px,6.4vw,46px)} .sub{font-size:clamp(14px,3.4vw,20px)}
+@media (max-width:520px){ .scr{padding-left:12px;padding-right:12px} .home{gap:12px} }
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 24px);transform:translateX(-50%);background:var(--ink);color:#fff;
   padding:12px 20px;border-radius:16px;font-weight:800;font-size:18px;opacity:0;transition:opacity .2s;z-index:99;pointer-events:none}
 .toast.on{opacity:1}
@@ -434,16 +472,24 @@ YA_LEVELS.push({t:'mul', dans:[2,3,4,5,6,7,8,9], label:'전체', name:'구구단
 YA_LEVELS.push({t:'rev', dans:[2,3,4,5,6,7,8,9], label:'□×', name:'거꾸로 구구단'});
 
 /* 더하기·빼기 길 */
-var ADD_LEVELS = [
-  {t:'ar', op:'+', max:5,  label:'+5',  name:'5까지 더하기'},
-  {t:'ar', op:'+', max:10, label:'+10', name:'10까지 더하기'},
-  {t:'ar', op:'-', max:10, label:'-10', name:'10까지 빼기'},
-  {t:'ar', op:'10', label:'10🎯', name:'10 만들기 (□+3=10)'},
-  {t:'ar', op:'+', max:20, label:'+20', name:'20까지 더하기'},
-  {t:'ar', op:'-', max:20, label:'-20', name:'20까지 빼기'},
-  {t:'ar', op:'c+', label:'받아올림', name:'받아올림 더하기 (27+5)'},
-  {t:'ar', op:'c-', label:'받아내림', name:'받아내림 빼기 (32-7)'},
-  {t:'ar', op:'2+', label:'두자리+', name:'두 자리 더하기 (34+28)'}
+var ADD_LEVELS = [   /* 10/3 사용자: "1자리·2자리·3자리 등 다양한 수준" — 받아올림/내림을 단계로 나눔. 두 자리부터는 세로셈 */
+  {t:'ar', op:'a1',   label:'1+1',   name:'한 자리 더하기 (3+4)'},
+  {t:'ar', op:'a1c',  label:'1+1↑',  name:'한 자리 더하기 · 10 넘기 (8+5)'},
+  {t:'ar', op:'s1',   label:'1−1',   name:'한 자리 빼기 (9−4)'},
+  {t:'ar', op:'s1c',  label:'1□−1',  name:'십몇 빼기 (14−6)'},
+  {t:'ar', op:'10',   label:'10🎯',  name:'10 만들기 (□+3=10)'},
+  {t:'ar', op:'a21',  label:'2+1',   name:'두 자리 + 한 자리 (23+4)'},
+  {t:'ar', op:'c+',   label:'2+1↑',  name:'두 자리 + 한 자리 · 받아올림 (27+5)'},
+  {t:'ar', op:'c-',   label:'2−1↓',  name:'두 자리 − 한 자리 · 받아내림 (32−7)'},
+  {t:'ar', op:'a22',  label:'2+2',   name:'두 자리 + 두 자리 (34+25)'},
+  {t:'ar', op:'a22c', label:'2+2↑',  name:'두 자리 + 두 자리 · 받아올림 (38+47)'},
+  {t:'ar', op:'s22',  label:'2−2',   name:'두 자리 − 두 자리 (68−25)'},
+  {t:'ar', op:'s22c', label:'2−2↓',  name:'두 자리 − 두 자리 · 받아내림 (62−38)'},
+  {t:'ar', op:'a33',  label:'3+3',   name:'세 자리 + 세 자리 (234+152)'},
+  {t:'ar', op:'a33c', label:'3+3↑',  name:'세 자리 + 세 자리 · 받아올림 (378+465)'},
+  {t:'ar', op:'s33',  label:'3−3',   name:'세 자리 − 세 자리 (624−358)'},
+  {t:'ar', op:'blank',label:'□+',    name:'빈칸 채우기 (□+27=45)'},
+  {t:'ar', op:'mixadd',label:'섞기', name:'두·세 자리 섞기'}
 ];
 /* 빠른 계산 길 — 섞인 연산 */
 var FAST_LEVELS = [
@@ -510,6 +556,13 @@ function load(){
     x.miss = x.miss || {};           // 틀린 문제 → 횟수
     x.tickets = x.tickets || 0;      // 🎟 게임 티켓
   });
+  /* 10/3 더하기·빼기 단계가 9 → 17개로 늘어 순서가 바뀜 — 예전 별을 비슷한 새 단계로 옮긴다 */
+  if(!d.addv2){
+    var AMAP = [0,0,2,4,1,3,6,7,9];
+    d.order.forEach(function(k){ var st = d.kids[k].stars && d.kids[k].stars.add; if(!st) return; var n = {};
+      Object.keys(st).forEach(function(i){ var ni = AMAP[+i]; if(ni!=null) n[ni] = Math.max(n[ni]||0, st[i]); }); d.kids[k].stars.add = n; });
+    d.addv2 = 1;
+  }
   d.xp2 = 1;
   return d;
 }
@@ -579,6 +632,17 @@ function cImg(fam, i){
 function petHTML(p){ return cImg(p.a, petStage(p)); }
 function totalStars(x){ var n = 0; Object.keys(x.stars||{}).forEach(function(t){ Object.keys(x.stars[t]).forEach(function(l){ n += x.stars[t][l]; }); }); return n; }
 function clsOpen(x, c){ return totalStars(x) >= CLS[c].need; }
+/* 과도 하나씩 열린다 (10/3 사용자: 전부 고를 수 있으면 계속 번갈아 한다) — 분류 안에서 별이 모이는 대로 차례로 */
+var FAM_NEED = {canid:0, felid:6, ursid:14, rodent:22, elephant:32, whale:42, marsup:52,
+  chicken:0, duck:8, penguin:18, parrot:28, raptor:40,  salmon:0, puffer:12, shark:26,
+  butterfly:10, bee:16, beetle:24, dragonfly:34,  frog:20, salamander:38,
+  turtle:30, lizard:40, snake:50, croc:60,  primate:45,  ceratops:60, sauropod:70, theropod:85, earlybird:100,
+  bacteria:80, fungi:95, protist:110};
+function famOpen(x, a){ return totalStars(x) >= (FAM_NEED[a]||0); }
+var RANKS = [[0,'🥚','새싹 탐험가'],[10,'🐣','꼬마 탐험가'],[30,'🐥','탐험가'],[60,'🦉','척척박사'],[100,'👑','생물 박사']];
+function rankOf(x){ var t = totalStars(x), r = RANKS[0]; RANKS.forEach(function(k){ if(t >= k[0]) r = k; }); return r; }
+function nextUnlock(x){ var t = totalStars(x), best = null;
+  Object.keys(FAM_NEED).forEach(function(a){ var n = FAM_NEED[a]; if(n > t && (!best || n < best.n)) best = {a:a, n:n}; }); return best; }
 
 /* ── 하루 시간 제한 ── */
 var _tick = null, _played = 0;
@@ -653,7 +717,7 @@ function vNewKid(){
 function vLevel(first){
   var x = kid();
   el('s-adopt').innerHTML = '<div class="top"><button class="ghost" id="lvBack">◀ '+(first?'처음':'홈')+'</button><span class="sp"></span></div>'+
-    '<h1>'+esc(jo(x.name,'은','는'))+' 어떤 놀이를 할까?</h1><p class="sub">내 수준을 골라요 · 나중에 언제든 바꿀 수 있어요</p>'+
+    '<h1>'+esc(jo(x.name,'은','는'))+' 어떤 놀이를 할까?</h1><p class="sub">하고 싶은 게임을 골라요 · 게임마다 동물을 따로 키워요 · 언제든 바꿀 수 있어요</p>'+
     '<div class="animals" style="max-width:900px">'+Object.keys(TRACKS).map(function(t){
       var T = TRACKS[t], st = (x.stars[t] ? Object.keys(x.stars[t]).length : 0);
       return '<button class="ani'+(x.track===t?' on':'')+'" data-tr="'+t+'"><div class="em">'+T.em+'</div><b>'+T.n+'</b>'+
@@ -677,11 +741,13 @@ function vAdopt(){
     el('s-adopt').innerHTML =
       '<div class="top"><button class="ghost" id="aBack">◀ '+(pet() ? '홈' : '처음')+'</button><span class="sp"></span></div>'+
       '<h1>'+track().em+' '+track().n+'에서 키울 동물!</h1><p class="sub">놀이마다 동물 한 마리 · 다른 놀이에서 키우는 동물은 못 골라요</p>'+
-      '<div class="worlds">'+Object.keys(CLS).map(function(k){ var open = clsOpen(kid(), k);
-        return '<button class="world'+(k===w?' on':'')+'" data-w="'+k+'" style="background:'+CLS[k].col+'33'+(open?'':';opacity:.5')+'">'+(open ? CLS[k].em : '🔒')+' '+CLS[k].n+'</button>'; }).join('')+'</div>'+
+      '<div class="clsgrid">'+Object.keys(CLS).map(function(k){ var open = clsOpen(kid(), k);
+        return '<button class="world'+(k===w?' on':'')+'" data-w="'+k+'" style="background:'+CLS[k].col+'33'+(open?'':';opacity:.5')+'"><span class="ce">'+(open ? CLS[k].em : '🔒')+'</span>'+CLS[k].n+'</button>'; }).join('')+'</div>'+
       (clsOpen(kid(), w) ? '<p class="sub" style="margin:0 0 10px">'+CLS[w].em+' '+CLS[w].d+'</p>'+
       '<div class="animals">'+Object.keys(FAMS).filter(function(a){ return FAMS[a].c===w; }).map(function(a){
-        var A = FAMS[a], owned = kid().dex.indexOf(a)>=0, busy = usedBy(a);
+        var A = FAMS[a], owned = kid().dex.indexOf(a)>=0, busy = usedBy(a), lock = !famOpen(kid(), a);
+        if(lock) return '<button class="ani" disabled style="opacity:.55"><div class="em" style="filter:grayscale(1) brightness(.6)">'+cImg(a, A.st.length-1)+'</div>'+
+          '<b>🔒 '+A.n+'</b><small>⭐ '+FAM_NEED[a]+'개면 열려요<br>(지금 '+totalStars(kid())+'개)</small></button>';
         return '<button class="ani'+(pick===a?' on':'')+'" data-a="'+a+'"'+(busy?' disabled style="opacity:.4"':'')+'><div class="em">'+cImg(a, A.st.length-1)+'</div>'+
           '<div style="font-size:26px;margin-top:-6px">'+cImg(a, 0)+' <span style="font-size:14px;color:var(--ink2)">에서 시작!</span></div><b>'+A.n+(owned?' ✅':'')+'</b>'+
           '<small>'+(busy ? TRACKS[busy].em+' '+TRACKS[busy].n+'에서 키우는 중' : (A.type==='life' ? '🔄 한살이 · ' : '👪 친척 · ')+A.st.length+'단계<br>'+A.st.map(function(st){ return st[0]; }).join(' → '))+'</small></button>';
@@ -708,7 +774,7 @@ function vHome(){
   var L = track().levels, next = nextLevel();
   el('s-home').innerHTML =
     '<div class="top"><button class="ghost" id="hBack">◀ 처음</button><span class="sp"></span>'+
-      '<span class="chip">🔥 '+x.streak.n+'일</span><span class="chip">🍖 '+x.food+'</span><span class="chip">🎟 '+(x.tickets||0)+'</span>'+
+      '<span class="chip">'+rankOf(x)[1]+' '+rankOf(x)[2]+' · ⭐'+totalStars(x)+'</span><span class="chip">🔥 '+x.streak.n+'일</span><span class="chip">🍖 '+x.food+'</span><span class="chip">🎟 '+(x.tickets||0)+'</span>'+
       '<span class="chip">⏰ '+minutesToday(K)+(D.limit?'/'+D.limit:'')+'분</span></div>'+
     '<div class="home">'+
       '<div class="petbox" id="petbox" style="background:linear-gradient(180deg,'+CLS[A.c].col+'33,'+CLS[A.c].col+'99)">'+
@@ -729,7 +795,7 @@ function vHome(){
           (track().extra==='speed' ? '<button class="act" id="goSpeed"><span class="e">⏱</span>스피드'+(x.best[x.track]?' · 최고 '+x.best[x.track]:'')+'</button>'
                     : '<button class="act" id="goFree"><span class="e">✏️</span>마음대로 쓰기</button>')+
           '<button class="act" id="goDex"><span class="e">📖</span>동물 도감</button>'+
-          '<button class="act" id="goLv"><span class="e">'+track().em+'</span>수준 바꾸기</button>'+
+          '<button class="act" id="goLv"><span class="e">'+track().em+'</span>게임 바꾸기</button>'+
         '</div></div></div>';
   el('hBack').onclick = vPick;
   el('pet').onclick = function(){ petTap(); };
@@ -811,14 +877,14 @@ function finish(){
     var good = (RUN.q||[]).filter(function(v){ return v; }).length;
     stars = (RUN.wrong === 0 && good >= 2) ? 3 : RUN.wrong <= 2 ? 2 : 1;
   } else stars = acc >= .9 ? 3 : acc >= .7 ? 2 : 1;
-  var x = kid(), S = window.stars(), prev = S[RUN.idx]||0, bonus = stars*2 + (prev ? 0 : 3);
+  var x = kid(), S = window.stars(), prev = S[RUN.idx]||0, bonus = stars*2 + (prev ? 0 : 3), before = totalStars(x), rkB = rankOf(x)[2];
   if(stars > prev) S[RUN.idx] = stars;
   var tk = stars === 3 ? 2 : 1; x.tickets = (x.tickets||0) + tk;
   x.food += bonus; save(); sWin();
   say(praise()+' 별 '+stars+'개!');
   el('s-done').innerHTML =
     '<h1>'+RUN.lv.name+' 끝!</h1><div class="stars">'+'⭐'.repeat(stars)+'<span style="opacity:.2">'+'⭐'.repeat(3-stars)+'</span></div>'+
-    '<p class="reward">🍖 먹이 '+(RUN.ok + bonus)+'개 · 🎟 게임 티켓 '+tk+'장 받았어요!</p>'+
+    '<p class="reward">🍖 먹이 '+(RUN.ok + bonus)+'개 · 🎟 게임 티켓 '+tk+'장 받았어요!</p>'+unlockNote(before, totalStars(x), rkB, rankOf(x))+
     '<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">'+
       '<button class="big" id="dFeed">'+esc(pet().name)+'에게 먹이 주러 가기</button>'+
       '<button class="ghost" id="dAgain">한 번 더</button></div>';
@@ -827,6 +893,16 @@ function finish(){
   show('s-done');
 }
 
+/* 새로 열린 과·분류·등급 축하 */
+function unlockNote(b, a, rkB, rkA){
+  if(a <= b) return '';
+  var o = [];
+  if(rkA[2] !== rkB) o.push('🎖 등급 상승! '+rkA[1]+' <b>'+rkA[2]+'</b>');
+  Object.keys(CLS).forEach(function(c){ if(CLS[c].need > b && CLS[c].need <= a) o.push('🎉 '+CLS[c].em+' <b>'+CLS[c].n+'</b> 분류가 열렸어요!'); });
+  Object.keys(FAM_NEED).forEach(function(f){ if(FAM_NEED[f] > b && FAM_NEED[f] <= a) o.push('🔓 '+CLS[FAMS[f].c].em+' <b>'+jo(FAMS[f].n,'이','가')+'</b> 열렸어요!'); });
+  if(o.length) setTimeout(function(){ say(o.map(function(t){ return t.replace(/<[^>]+>/g,''); }).join(' ')); }, 1200);
+  return o.length ? '<div class="unlock">'+o.join('<br>')+'</div>' : '';
+}
 /* ── 문제 만들기 (자판으로 답하는 문제 전부) → {txt, ans, tag, say} ── */
 function rnd(a, b){ return a + Math.floor(Math.random()*(b-a+1)); }
 function genQ(lv){
@@ -840,6 +916,23 @@ function genQ(lv){
   if(op==='mix1') op = Math.random()<.5 ? 'c+' : 'c-';
   if(op==='mix2') op = ['c+','c-','m'][rnd(0,2)];
   if(op==='mix3') op = ['c+','c-','m','div'][rnd(0,3)];
+  function V(a, o, b, ans){ return {txt:a+' '+(o==='+'?'+':'−')+' '+b+' =', ans:ans, tag:a+o+b, v:[a, o, b]}; }   // 세로셈
+  function noCarry(d){ var a = '', b = ''; for(var k=0;k<d;k++){ var p = rnd(k===0?1:0, 8), q = rnd(k===0?1:0, 9-p); if(k===0 && p+q>9) q = 9-p; a += p; b += q; } return [+a, +b]; }
+  function noBorrow(d){ var a = '', b = ''; for(var k=0;k<d;k++){ var p = rnd(k===0?2:0, 9), q = rnd(k===0?1:0, k===0 ? p-1 : p); a += p; b += q; } return [+a, +b]; }
+  if(op==='mixadd') op = ['a22c','s22c','a33','a33c','s33'][rnd(0,4)];
+  if(op==='a1'){ x = rnd(1,8); y = rnd(1, 9-x); return {txt:x+' + '+y+' =', ans:x+y, tag:x+'+'+y}; }
+  if(op==='a1c'){ x = rnd(2,9); y = rnd(Math.max(1,10-x), 9); return {txt:x+' + '+y+' =', ans:x+y, tag:x+'+'+y}; }
+  if(op==='s1'){ x = rnd(2,9); y = rnd(1, x); return {txt:x+' − '+y+' =', ans:x-y, tag:x+'-'+y}; }
+  if(op==='s1c'){ x = rnd(11,18); y = rnd((x%10)+1, 9); return {txt:x+' − '+y+' =', ans:x-y, tag:x+'-'+y}; }
+  if(op==='a21'){ x = rnd(11,95); if(x%10===9) x--; y = rnd(1, 9-(x%10)); return V(x,'+',y,x+y); }
+  if(op==='a22'){ var nc = noCarry(2); return V(nc[0],'+',nc[1],nc[0]+nc[1]); }
+  if(op==='a22c'){ var p1 = rnd(2,9), q1 = rnd(10-p1, 9); x = rnd(1,8)*10 + p1; y = rnd(1,8)*10 + q1; return V(x,'+',y,x+y); }
+  if(op==='s22'){ var nb = noBorrow(2); return V(nb[0],'−',nb[1],nb[0]-nb[1]); }
+  if(op==='s22c'){ x = rnd(31,98); if(x%10===9) x--; y = rnd(11, x-11); if((y%10) <= (x%10)) y = y - (y%10) + Math.min(9,(x%10)+rnd(1,9-(x%10))); if(y >= x) y = x - rnd(5,9); return V(x,'−',y,x-y); }
+  if(op==='a33'){ var c3 = noCarry(3); return V(c3[0],'+',c3[1],c3[0]+c3[1]); }
+  if(op==='a33c'){ var p3 = rnd(2,9), q3 = rnd(10-p3, 9); x = rnd(1,5)*100 + rnd(0,9)*10 + p3; y = rnd(1,4)*100 + rnd(0,9)*10 + q3; return V(x,'+',y,x+y); }
+  if(op==='s33'){ x = rnd(300,999); y = rnd(101, x-50); return V(x,'−',y,x-y); }
+  if(op==='blank'){ y = rnd(11,49); var t = rnd(y+5, 99); return {txt:'□ + '+y+' = '+t, ans:t-y, tag:'□+'+y+'='+t}; }
   if(op==='+'){ x = rnd(0, lv.max); y = rnd(0, lv.max - x); return {txt:x+' + '+y+' =', ans:x+y, tag:x+'+'+y}; }
   if(op==='-'){ x = rnd(1, lv.max); y = rnd(0, x); return {txt:x+' − '+y+' =', ans:x-y, tag:x+'-'+y}; }
   if(op==='10'){ y = rnd(1,9); return {txt:'□ + '+y+' = 10', ans:10-y, tag:'□+'+y}; }
@@ -854,8 +947,10 @@ function genQ(lv){
 function qMul(){
   var q = genQ(RUN.lv), ans = q.ans, txt = q.txt, tag = q.tag, input = '', tries = 0;
   function draw(){
+    var qhtml = q.v ? '<div class="vert"><div>'+q.v[0]+'</div><div><span class="vo">'+(q.v[1]==='+'?'+':'−')+'</span>'+q.v[2]+'</div><div class="vbar"></div><div class="vans">'+(input||'&nbsp;')+'</div></div>'
+                    : '<div class="qtext">'+txt+'</div><div class="ansline">'+(input||'&nbsp;')+'</div>';
     el('s-play').innerHTML = qTop()+
-      '<div class="qbox"><div class="qtext">'+txt+'</div><div class="ansline">'+(input||'&nbsp;')+'</div>'+
+      '<div class="qbox">'+qhtml+
       '<div class="pad">'+[1,2,3,4,5,6,7,8,9].map(function(n){ return '<button data-n="'+n+'">'+n+'</button>'; }).join('')+
         '<button class="del" data-n="del">⌫</button><button data-n="0">0</button><button class="ok" data-n="ok">✔</button></div></div>';
     bindTop();
@@ -864,7 +959,7 @@ function qMul(){
         var v = bt.dataset.n; sPop();
         if(v==='del'){ input = input.slice(0,-1); draw(); return; }
         if(v==='ok'){ check(); return; }
-        if(input.length < 3) input += v;
+        if(input.length < 4) input += v;
         draw();
         if(String(ans).length === input.length) setTimeout(check, 120);      // 자리 수가 차면 자동 채점
       };
@@ -889,7 +984,8 @@ function startSpeed(){
     el('s-play').innerHTML =
       '<div class="qtop"><button class="ghost" id="spX">✕</button><span class="timer">⏱ '+left+'</span><span class="sp" style="flex:1"></span>'+
       '<span class="combo">'+(combo>=3 ? '🔥 '+combo+'콤보' : '')+'</span><span class="chip">맞힌 수 '+score+'</span><span class="chip">최고 '+best+'</span></div>'+
-      '<div class="qbox"><div class="qtext">'+q.txt+'</div><div class="ansline">'+(input||'&nbsp;')+'</div>'+
+      '<div class="qbox">'+(q.v ? '<div class="vert"><div>'+q.v[0]+'</div><div><span class="vo">'+(q.v[1]==='+'?'+':'−')+'</span>'+q.v[2]+'</div><div class="vbar"></div><div class="vans">'+(input||'&nbsp;')+'</div></div>'
+                                  : '<div class="qtext">'+q.txt+'</div><div class="ansline">'+(input||'&nbsp;')+'</div>')+
       '<div class="pad">'+[1,2,3,4,5,6,7,8,9].map(function(n){ return '<button data-n="'+n+'">'+n+'</button>'; }).join('')+
         '<button class="del" data-n="del">⌫</button><button data-n="0">0</button><button class="ok" data-n="ok">✔</button></div></div>';
     el('spX').onclick = function(){ clearInterval(timer); vHome(); };
@@ -897,7 +993,7 @@ function startSpeed(){
       bt.onclick = function(){
         var v = bt.dataset.n;
         if(v==='del'){ input = input.slice(0,-1); draw(); return; }
-        if(v!=='ok' && input.length < 3) input += v;
+        if(v!=='ok' && input.length < 4) input += v;
         var ans = q.ans;
         if(v==='ok' || String(ans).length === input.length){
           if(+input === ans){ score++; combo++; sGood(); if(combo%5===0){ kid().food += 2; flash('🔥'); } newQ(); }
@@ -1234,7 +1330,7 @@ function vDex(){
           var A = FAMS[a], sn = x.seen[a], has = sn != null;
           var raising = Object.keys(x.pets).filter(function(t){ return x.pets[t].a === a; })[0];
           return '<button data-dx="'+a+'"'+(has?'':' disabled')+'><div class="em '+(has?'':'no')+'">'+cImg(a, has ? sn : 0)+'</div>'+
-            '<b>'+(has ? A.n : '???')+'</b><small>'+(has ? (sn+1)+'/'+A.st.length+'단계'+(x.dex.indexOf(a)>=0?' ✅':'')+(raising ? '<br>'+TRACKS[raising].em+' 키우는 중' : '') : (open ? '아직 못 만났어요' : '🔒'))+'</small></button>';
+            '<b>'+(has ? A.n : '???')+'</b><small>'+(has ? (sn+1)+'/'+A.st.length+'단계'+(x.dex.indexOf(a)>=0?' ✅':'')+(raising ? '<br>'+TRACKS[raising].em+' 키우는 중' : '') : (open && famOpen(x, a) ? '아직 못 만났어요' : '🔒 ⭐'+(FAM_NEED[a]||0)))+'</small></button>';
         }).join('')+'</div></div>';
     }).join('')+
     (pet() && petStage(pet()) === FAMS[pet().a].st.length-1 ?
@@ -1309,7 +1405,7 @@ function vParent(){
     return '<div class="pcard"><h3>'+x.avatar+' '+esc(x.name)+' · '+Object.keys(x.pets).map(function(t){ var q = x.pets[t]; return TRACKS[t].em+petHTML(q)+' '+esc(q.name); }).join('  ')+'</h3>'+
       '<table><tr><td>도감</td><td>동물 '+Object.keys(x.seen).length+'마리 · 다 키운 동물 '+x.dex.length+'마리</td></tr></table>'+
       '<table><tr><td>오늘 논 시간</td><td><b>'+minutesToday(k)+'분</b></td></tr>'+
-      '<tr><td>수준</td><td>'+T.em+' '+T.n+' · '+done+' / '+L.length+'단계 · 다음: '+(L[done] ? L[done].name : '모두 완료!')+'</td></tr>'+
+      '<tr><td>게임</td><td>'+T.em+' '+T.n+' · '+done+' / '+L.length+'단계 · 다음: '+(L[done] ? L[done].name : '모두 완료!')+'</td></tr>'+
       (x.best[x.track] ? '<tr><td>스피드 최고 기록</td><td>60초에 <b>'+x.best[x.track]+'</b>문제</td></tr>' : '')+
       '<tr><td>연속 출석</td><td>🔥 '+x.streak.n+'일</td></tr>'+
       '<tr><td>최근 7일(분)</td><td>'+days.map(function(d){ return d.slice(5)+' '+Math.round(x.days[d]/60); }).join(' · ')+'</td></tr>'+
