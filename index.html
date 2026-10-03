@@ -211,7 +211,7 @@ var ANIMALS = {
   turtle: {w:'sea',  n:'거북',   st:[['🐢','아기 거북'],['🐢','바다거북','🌊'],['🐊','거대 악어거북']]}
 };
 var WORLDS = {land:'🌳 육지', sky:'☁️ 하늘', sea:'🌊 바다'};
-var EVO_XP = [0, 25, 70, 140, 240];          // 단계별로 필요한 누적 먹이
+var EVO_XP = [0, 120, 350, 700, 1200];       // 단계별로 필요한 누적 먹이 (10/3 "성장이 너무 빠르다" → 약 5배)
 
 /* 숫자 쓰기 길 — 4~5세: 숫자 따라 쓰기 → 세기 → 묶어 세기 */
 var YU_LEVELS = [];
@@ -283,6 +283,18 @@ function load(){
     x.miss = x.miss || {};           // 틀린 문제 → 횟수
     x.tickets = x.tickets || 0;      // 🎟 게임 티켓
   });
+  /* 10/3 성장 속도를 늦췄다 — 이미 키운 동물이 작아지지 않게 «지금 단계»는 그대로 두고 경험치만 새 기준으로 옮긴다 */
+  if(!d.xp2){
+    var OLD = [0, 25, 70, 140, 240];
+    d.order.forEach(function(k){
+      var p = d.kids[k] && d.kids[k].pet; if(!p) return;
+      var n = ANIMALS[p.a] ? ANIMALS[p.a].st.length : 4, st = 0;
+      for(var i=0;i<n;i++) if(p.xp >= OLD[i]) st = i;
+      var f = (st < n-1) ? (p.xp - OLD[st]) / (OLD[st+1] - OLD[st]) : 0;
+      p.xp = Math.round(EVO_XP[st] + (st < n-1 ? f * (EVO_XP[st+1] - EVO_XP[st]) : 0));
+    });
+    d.xp2 = 1;
+  }
   return d;
 }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(D)); }catch(e){} }
@@ -307,11 +319,27 @@ function sPop(){ tone([900], .07, 'sine'); }
 function say(t, rate){
   try{
     speechSynthesis.cancel();
+    t = String(t).replace(/\d+/g, function(m){ return kor(m); });   // 남은 숫자는 한자어로 (12 → 십이)
     var u = new SpeechSynthesisUtterance(t); u.lang = 'ko-KR'; u.rate = rate||1; u.pitch = 1.25;
     var v = speechSynthesis.getVoices().filter(function(v){ return /^ko/i.test(v.lang); });
     var p = v.filter(function(x){ return /premium|enhanced|향상/i.test(x.name); })[0] || v[0]; if(p) u.voice = p;
     speechSynthesis.speak(u);
   }catch(e){}
+}
+/* 숫자 읽기 — 음성이 12 를 「일이」로 읽어서 직접 한글로 바꿔 준다 (사용자 지적)
+   kor(12) = 십이 (구구단·수식) / cnt(3) = 세 (물건 셀 때: 세 개) */
+function kor(n){
+  n = +n; if(n === 0) return '영';
+  var D = ['','일','이','삼','사','오','육','칠','팔','구'], o = '';
+  if(n >= 1000){ o += (Math.floor(n/1000) > 1 ? D[Math.floor(n/1000)] : '')+'천'; n %= 1000; }
+  if(n >= 100){ o += (Math.floor(n/100) > 1 ? D[Math.floor(n/100)] : '')+'백'; n %= 100; }
+  if(n >= 10){ o += (Math.floor(n/10) > 1 ? D[Math.floor(n/10)] : '')+'십'; n %= 10; }
+  return o + D[n];
+}
+function cnt(n){
+  n = +n; if(n <= 0 || n >= 100) return kor(n);
+  var T = ['','열','스물','서른','마흔','쉰','예순','일흔','여든','아흔'], O = ['','한','두','세','네','다섯','여섯','일곱','여덟','아홉'];
+  return (n === 20 ? '스무' : T[Math.floor(n/10)]) + O[n%10];
 }
 var PRAISE = ['잘했어!','최고야!','멋져!','우와, 대단해!','정답!','훌륭해!'];
 function praise(){ return PRAISE[Math.floor(Math.random()*PRAISE.length)]; }
@@ -545,7 +573,7 @@ function wrong(tag){
 }
 function finish(){
   var tot = RUN.ok + RUN.wrong, acc = tot ? RUN.ok/tot : 1;
-  var stars = acc >= .9 ? 3 : acc >= .7 ? 2 : 1;
+  var stars = RUN.lv.t==='trace' ? 3 : acc >= .9 ? 3 : acc >= .7 ? 2 : 1;   // 따라 쓰기는 끝까지 쓰면 별 3개
   var x = kid(), S = window.stars(), prev = S[RUN.idx]||0, bonus = stars*2 + (prev ? 0 : 3);
   if(stars > prev) S[RUN.idx] = stars;
   var tk = stars === 3 ? 2 : 1; x.tickets = (x.tickets||0) + tk;
@@ -567,8 +595,8 @@ function rnd(a, b){ return a + Math.floor(Math.random()*(b-a+1)); }
 function genQ(lv){
   if(lv.t==='mul' || lv.t==='rev'){
     var a = lv.dans[Math.floor(Math.random()*lv.dans.length)], b = rnd(1,9);
-    return lv.t==='rev' ? {txt:a+' × □ = '+(a*b), ans:b, tag:a+'×'+b, say:a+' 곱하기 '+b+'는 '+(a*b)}
-                        : {txt:a+' × '+b+' =', ans:a*b, tag:a+'×'+b, say:a+' '+b+' '+(a*b)};
+    return lv.t==='rev' ? {txt:a+' × □ = '+(a*b), ans:b, tag:a+'×'+b, say:kor(a)+' 곱하기 '+kor(b)+'는 '+kor(a*b)}
+                        : {txt:a+' × '+b+' =', ans:a*b, tag:a+'×'+b, say:kor(a)+' '+kor(b)+' '+kor(a*b)};   // 구구단 노래처럼 「삼 사 십이」
   }
   if(lv.t!=='ar') return {txt:'1 + 1 =', ans:2, tag:'1+1'};
   var op = lv.op, x, y;
@@ -649,7 +677,7 @@ function startSpeed(){
       clearInterval(timer);
       var rec = score > best; if(rec){ best = score; x.best[x.track] = score; }
       x.food += score; save(); sWin();
-      say(rec ? '새 기록! '+score+'개!' : score+'개 맞혔어요!');
+      say(rec ? '새 기록! '+cnt(score)+' 개!' : cnt(score)+' 개 맞혔어요!');
       el('s-done').innerHTML = '<h1>'+(rec ? '🏆 새 기록!' : '⏱ 끝!')+'</h1><div class="qtext">'+score+'개</div>'+
         '<p class="reward">최고 기록 '+best+'개 · 🍖 '+score+'개 받았어요</p>'+
         '<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center"><button class="big" id="sAgain">한 번 더!</button><button class="ghost" id="sHome">홈으로</button></div>';
@@ -670,7 +698,7 @@ function qCount(){
     '<div class="sub">몇 개일까?</div><div class="choices">'+opts.map(function(o){ return '<button data-o="'+o+'">'+o+'</button>'; }).join('')+'</div></div>';
   bindTop(); say('몇 개일까?');
   el('s-play').querySelectorAll('[data-o]').forEach(function(b){
-    b.onclick = function(){ if(+b.dataset.o === n){ say(n+'개! '+praise()); right(); } else { wrong(); say('다시 세어 볼까?'); b.style.visibility = 'hidden'; } };
+    b.onclick = function(){ if(+b.dataset.o === n){ say(cnt(n)+' 개! '+praise()); right(); } else { wrong(); say('다시 세어 볼까?'); b.style.visibility = 'hidden'; } };
   });
   show('s-play');
 }
@@ -682,11 +710,11 @@ function qGroup(){
   var seq = []; for(var i=1;i<=g;i++) seq.push(by*i);
   el('s-play').innerHTML = qTop()+'<div class="qbox"><div class="objs">'+Array(g+1).join('<span class="grp">'+Array(by+1).join(th)+'</span>')+'</div>'+
     '<div class="sub">'+by+'개씩 '+g+'묶음! 모두 몇 개?</div><div class="choices">'+opts.map(function(o){ return '<button data-o="'+o+'">'+o+'</button>'; }).join('')+'</div></div>';
-  bindTop(); say(by+'개씩 '+g+'묶음! 모두 몇 개일까?');
+  bindTop(); say(cnt(by)+' 개씩 '+cnt(g)+' 묶음! 모두 몇 개일까?');
   el('s-play').querySelectorAll('[data-o]').forEach(function(b){
     b.onclick = function(){
-      if(+b.dataset.o === n){ say(seq.join(', ')+'! '+by+' 곱하기 '+g+'는 '+n+'!', 1.1); right(); }
-      else { wrong(); say(by+'씩 세어 볼까? '+seq.slice(0,2).join(', ')); b.style.visibility = 'hidden'; }
+      if(+b.dataset.o === n){ say(seq.map(kor).join(', ')+'! '+kor(by)+' 곱하기 '+kor(g)+'는 '+kor(n)+'!', 1.1); right(); }
+      else { wrong(); say(kor(by)+'씩 세어 볼까? '+seq.slice(0,2).map(kor).join(', ')); b.style.visibility = 'hidden'; }
     };
   });
   show('s-play');
@@ -721,8 +749,8 @@ function traceScreen(d, onOK, inLevel){
     (inLevel ? '' : '<button class="ghost" id="tNew">🔀 다른 숫자</button>')+'</div></div>';
   if(inLevel) bindTop(); else el('qX').onclick = vHome;
   show('s-play');
-  say('숫자 '+d+'를 따라 써 볼까?');
-  var cv = el('cv'), box = el('tr'), ctx, W, H, ink = [], drawing = false, cur = null;
+  say('숫자 '+kor(d)+', 따라 써 볼까?');
+  var cv = el('cv'), box = el('tr'), ctx, W, H, ink = [], drawing = false, cur = null, tries = 0;
   function size(){ var r = box.getBoundingClientRect(), dpr = window.devicePixelRatio||1; W = r.width; H = r.height;
     cv.width = W*dpr; cv.height = H*dpr; ctx = cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); paint(); }
   function P(pt){ return [pt[0]/100*W, pt[1]/140*H]; }
@@ -761,12 +789,13 @@ function traceScreen(d, onOK, inLevel){
   if(el('tNew')) el('tNew').onclick = function(){ startFree(); };
   el('tOk').onclick = function(){
     var s = score();
-    if(s.cov >= 0.72 && s.out <= 0.35){
-      paint(true); say(praise()+' '+d+'!');
+    tries = (tries||0) + 1;
+    /* 4살 기준으로 너그럽게 (10/3 사용자: "잘 못 써도 별을 줘") — 대충 따라가면 통과, 두 번째부턴 무조건 통과 */
+    if((s.cov >= 0.45 && s.out <= 0.6) || (tries >= 2 && s.cov > 0.15)){
+      paint(true); say(praise()+' '+kor(d)+'!');
       if(onOK) setTimeout(onOK, 300); else { sGood(); flash('⭐'); kid().food += 1; save(); }
     } else {
-      sBad(); say(s.cov < 0.72 ? '조금 더 따라 써 볼까? 분홍 동그라미부터 시작해!' : '회색 길 위로 써 볼까?');
-      if(RUN) RUN.wrong++;
+      say('한 번 더 써 볼까? 분홍 동그라미부터 시작해!');     // 틀린 소리·감점 없음
       ink = []; paint();
     }
   };
