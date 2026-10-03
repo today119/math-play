@@ -163,9 +163,22 @@ h1{font-size:clamp(28px,6vw,46px);margin:8px 0 4px;letter-spacing:-1px}
 
 /* 도감 */
 .dex{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;width:100%;max-width:820px}
-.dex div{background:#fff;border-radius:22px;padding:12px;text-align:center;border:3px solid var(--line)}
+.dex > div{background:#fff;border-radius:22px;padding:12px;text-align:center;border:3px solid var(--line)}
 .dex .em{font-size:60px}
 .dex .no{filter:grayscale(1) brightness(.2);opacity:.35}
+
+/* 도감 카드 */
+.dex button{background:#fff;border-radius:22px;padding:12px;text-align:center;border:3px solid var(--line)}
+.dex button small{display:block;color:var(--ink2);font-size:13px;margin-top:4px;line-height:1.4}
+.evorow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;font-size:44px;margin-bottom:14px}
+.evorow i{font-style:normal;font-size:22px;color:var(--ink2)} .evorow .no{opacity:.35}
+.facts{display:flex;flex-direction:column;gap:10px;width:100%;max-width:720px}
+.fact{display:flex;gap:14px;align-items:flex-start;background:#fff;border-radius:22px;border:3px solid var(--line);padding:12px 16px}
+.fact .fe{font-size:56px;line-height:1;flex:0 0 auto}
+.fact b{font-size:22px} .fact p{margin:4px 0;font-size:17px;line-height:1.5;color:var(--ink)}
+.fact.lock{opacity:.55}
+.ghost.sm{font-size:14px;padding:6px 10px;margin-top:4px}
+.evofact{max-width:640px;text-align:center;font-size:22px;background:rgba(255,255,255,.75);border-radius:20px;padding:12px 18px;margin:0 16px}
 
 /* 잠자기 (시간 제한) */
 .sleep{background:linear-gradient(180deg,#2b2d6e,#5b4fa3);color:#fff}
@@ -200,18 +213,88 @@ select,input{font:inherit;font-size:18px;padding:8px 10px;border-radius:12px;bor
 
 <script>
 /* ═══════════════ 데이터 ═══════════════ */
-/* 동물 — 단계마다 이모지(+크기). 마지막까지 키우면 도감에 등록되고 새 동물을 입양 */
+/* 동물 — 단계마다 [이모지, 이름, 덧붙임 표시]. 단계를 늘려 진화 장면이 자주 나오게(10/3 사용자: "진화할 때 아이들이 좋아해").
+   놀이(수준)마다 동물 하나씩 키운다 → 놀이가 많아질수록 내 동물도 많아진다. 도감에서 단계마다 생물 지식 카드. */
 var ANIMALS = {
-  dog:    {w:'land', n:'강아지', st:[['🐶','아기 강아지'],['🐕','강아지'],['🐕‍🦺','늠름한 개'],['🐺','늑대']]},
-  cat:    {w:'land', n:'고양이', st:[['🐱','아기 고양이'],['🐈','고양이'],['🐆','표범'],['🦁','사자']]},
-  tiger:  {w:'land', n:'호랑이', st:[['🐯','아기 호랑이'],['🐅','호랑이'],['🐅','백호 대장', '👑']]},
-  chick:  {w:'sky',  n:'병아리', st:[['🥚','알'],['🐣','깨어난 병아리'],['🐥','병아리'],['🐔','닭'],['🦅','독수리']]},
-  parrot: {w:'sky',  n:'앵무새', st:[['🦜','아기 앵무새'],['🦚','공작'],['🐉','하늘의 용']]},
-  fish:   {w:'sea',  n:'물고기', st:[['🐟','작은 물고기'],['🐠','열대어'],['🐬','돌고래'],['🐋','고래']]},
-  turtle: {w:'sea',  n:'거북',   st:[['🐢','아기 거북'],['🐢','바다거북','🌊'],['🐊','거대 악어거북']]}
+  dog:    {w:'land', n:'강아지', st:[['🐶','아기 강아지'],['🐕','강아지'],['🦮','듬직한 개'],['🐕‍🦺','구조견'],['🐺','늑대'],['🐺','늑대 우두머리','👑']]},
+  cat:    {w:'land', n:'고양이', st:[['🐱','아기 고양이'],['🐈','고양이'],['🐈‍⬛','검은 고양이'],['🐆','표범'],['🦁','사자'],['🦁','사자 왕','👑']]},
+  tiger:  {w:'land', n:'호랑이', st:[['🐯','아기 호랑이'],['🐅','어린 호랑이'],['🐅','호랑이','💪'],['🐅','백두산 호랑이','🏔'],['🐅','백호 대장','👑']]},
+  rabbit: {w:'land', n:'토끼',   st:[['🐰','아기 토끼'],['🐇','토끼'],['🦘','캥거루'],['🦌','사슴'],['🦄','유니콘']]},
+  bear:   {w:'land', n:'곰',     st:[['🐻','아기 곰'],['🐻','반달가슴곰','🍯'],['🐼','판다'],['🐻‍❄️','북극곰'],['🦣','매머드']]},
+  chick:  {w:'sky',  n:'병아리', st:[['🥚','알'],['🐣','깨어난 병아리'],['🐥','병아리'],['🐔','닭'],['🐓','수탉'],['🦅','독수리'],['🦅','하늘의 왕','👑']]},
+  parrot: {w:'sky',  n:'앵무새', st:[['🦜','아기 앵무새'],['🦜','앵무새','✨'],['🦩','플라밍고'],['🦚','공작'],['🐉','용'],['🐲','전설의 용']]},
+  penguin:{w:'sky',  n:'펭귄',   st:[['🐧','아기 펭귄'],['🐧','황제펭귄','❄️'],['🦭','물범'],['🐳','흰긴수염고래']]},
+  fish:   {w:'sea',  n:'물고기', st:[['🐟','작은 물고기'],['🐠','흰동가리'],['🐡','복어'],['🦈','상어'],['🐬','돌고래'],['🐋','고래']]},
+  turtle: {w:'sea',  n:'거북',   st:[['🐢','아기 거북'],['🐢','바다거북','🌊'],['🦎','도마뱀'],['🐊','악어'],['🦕','목 긴 공룡'],['🦖','티라노사우루스']]},
+  shrimp: {w:'sea',  n:'새우',   st:[['🦐','새우'],['🦀','꽃게'],['🦞','바닷가재'],['🦑','오징어'],['🐙','문어']]}
+};
+/* 도감 생물 카드 — 단계 이름 → [사는 곳, 먹이, 재미있는 사실]. 아이(4~9세)가 읽고 들을 수 있게 짧게 */
+var FACTS = {
+  '아기 강아지':['집','엄마 젖','태어나서 2주쯤 지나야 눈을 떠요.'],
+  '강아지':['집','사료·고기','코가 사람보다 1만 배쯤 냄새를 잘 맡아요.'],
+  '듬직한 개':['집','사료·고기','시각 장애인을 돕는 안내견은 2년 넘게 훈련을 받아요.'],
+  '구조견':['산·무너진 건물','사료·고기','냄새로 눈 속이나 건물 속에 갇힌 사람을 찾아내요.'],
+  '늑대':['숲·초원','사슴 같은 동물','무리를 지어 살고, 울음소리로 서로 신호를 보내요. 개의 조상이에요.'],
+  '늑대 우두머리':['숲·초원','사슴 같은 동물','무리를 이끌며 사냥 길을 정해요.'],
+  '아기 고양이':['집','엄마 젖','태어나서 한 달쯤 지나면 장난을 치기 시작해요.'],
+  '고양이':['집','사료·생선','하루에 12시간이 넘게 자요. 수염으로 좁은 길을 재요.'],
+  '검은 고양이':['집','사료·생선','털 색이 달라도 모두 같은 고양이예요. 밤에도 잘 봐요.'],
+  '표범':['아프리카·아시아 숲','사슴·원숭이','무거운 먹이를 물고 나무 위로 올라가요.'],
+  '사자':['아프리카 초원','얼룩말·물소','고양이과에서 유일하게 무리(프라이드)를 지어 살아요.'],
+  '사자 왕':['아프리카 초원','얼룩말·물소','수사자의 갈기가 클수록 힘이 세 보여요. 울음소리가 8km까지 들려요.'],
+  '아기 호랑이':['숲','엄마 젖','태어나서 2년쯤 엄마와 함께 사냥을 배워요.'],
+  '어린 호랑이':['숲','사슴·멧돼지','줄무늬는 사람 지문처럼 호랑이마다 모두 달라요.'],
+  '호랑이':['숲','사슴·멧돼지','고양이과에서 가장 커요. 수영도 잘해요.'],
+  '백두산 호랑이':['추운 숲','사슴·멧돼지','시베리아호랑이라고도 해요. 우리나라 상징 동물이에요.'],
+  '백호 대장':['숲','사슴·멧돼지','흰 털의 호랑이는 아주 드물게 태어나요.'],
+  '아기 토끼':['굴·풀밭','엄마 젖','태어날 때는 털이 없고 눈도 감고 있어요.'],
+  '토끼':['풀밭','풀·채소','긴 귀로 소리도 듣고 몸의 열도 식혀요. 이빨이 계속 자라요.'],
+  '캥거루':['호주 초원','풀','새끼를 배 주머니에 넣어 키워요. 꼬리로 균형을 잡고 깡충깡충 뛰어요.'],
+  '사슴':['숲','풀·나뭇잎','수사슴의 뿔은 해마다 빠지고 다시 자라요.'],
+  '유니콘':['이야기 속','?','상상 속 동물이에요! 진짜 동물 중에는 뿔이 하나인 코뿔소가 있어요.'],
+  '아기 곰':['굴','엄마 젖','엄마가 겨울잠을 자는 동안 굴 속에서 태어나요.'],
+  '반달가슴곰':['우리나라 산','열매·꿀·벌레','가슴에 반달 모양 흰 털이 있어요. 지리산에 살아요.'],
+  '판다':['중국 대나무 숲','대나무','하루에 대나무를 12kg 넘게 먹어요.'],
+  '북극곰':['북극 얼음','물범','털 속 피부는 검은색이라 햇볕의 열을 잘 모아요.'],
+  '매머드':['아주 옛날 추운 땅','풀','1만 년 전쯤 사라진 털 많은 코끼리 친척이에요.'],
+  '알':['둥지','—','엄마 닭이 21일 동안 품으면 병아리가 깨어나요.'],
+  '깨어난 병아리':['둥지','—','부리 끝의 작은 돌기로 알껍데기를 깨고 나와요.'],
+  '병아리':['마당','곡식·벌레','태어나자마자 걷고 엄마를 졸졸 따라다녀요.'],
+  '닭':['마당','곡식·벌레','날개가 있지만 멀리 날지는 못해요.'],
+  '수탉':['마당','곡식·벌레','머리의 빨간 볏이 크고, 새벽에 "꼬끼오" 울어요.'],
+  '독수리':['높은 산','동물 고기','하늘 높이에서도 땅의 작은 동물을 볼 만큼 눈이 좋아요.'],
+  '하늘의 왕':['높은 산','동물 고기','날개를 펴면 어른 키보다 커요.'],
+  '아기 앵무새':['나무 구멍','열매·씨앗','엄마가 먹이를 토해서 먹여 줘요.'],
+  '앵무새':['열대 숲','열매·씨앗','사람 말을 흉내 낼 수 있어요. 발로 먹이를 잡고 먹어요.'],
+  '플라밍고':['얕은 호수','새우·조류','먹이 속 색소 때문에 깃털이 분홍색이 돼요. 한 다리로 서서 쉬어요.'],
+  '공작':['숲','곡식·벌레','수컷이 화려한 꼬리깃을 부채처럼 펼쳐 암컷에게 뽐내요.'],
+  '용':['이야기 속','?','상상 속 동물이에요. 실제로 하늘을 날던 큰 동물로는 익룡이 있었어요.'],
+  '전설의 용':['이야기 속','?','동양의 용은 비와 바다를 다스린다고 믿었어요.'],
+  '아기 펭귄':['남극','물고기(아빠·엄마가 줌)','솜털이 회색이고, 아빠 발 위에서 추위를 피해요.'],
+  '황제펭귄':['남극','물고기·오징어','가장 큰 펭귄이에요. 아빠가 알을 두 달 동안 발 위에 품어요.'],
+  '물범':['차가운 바다','물고기','물속에서 30분 넘게 숨을 참을 수 있어요.'],
+  '흰긴수염고래':['넓은 바다','크릴(작은 새우)','지구에서 가장 큰 동물이에요. 버스 3대를 이은 길이예요.'],
+  '작은 물고기':['바다·강','플랑크톤','아가미로 물속의 산소를 마셔요.'],
+  '흰동가리':['산호초 바다','플랑크톤','말미잘 속에 숨어 살아요. 「니모」의 그 물고기예요.'],
+  '복어':['바다','조개·게','위험하면 물을 마셔서 공처럼 부풀어요.'],
+  '상어':['바다','물고기','이빨이 빠져도 계속 새로 나요. 평생 수천 개나 돼요.'],
+  '돌고래':['바다','물고기·오징어','물고기가 아니라 젖을 먹이는 포유류예요. 소리로 대화해요.'],
+  '고래':['넓은 바다','물고기·크릴','머리 위 숨구멍으로 숨을 쉬어요. 노래를 불러 대화해요.'],
+  '아기 거북':['모래 해변','작은 생물','모래 속 알에서 깨어나 밤에 바다로 기어가요.'],
+  '바다거북':['바다','해파리·해초','100살 넘게 사는 거북도 있어요. 태어난 해변으로 돌아와 알을 낳아요.'],
+  '도마뱀':['따뜻한 땅','벌레','위험하면 꼬리를 끊고 도망가요. 꼬리는 다시 자라요.'],
+  '악어':['강·늪','물고기·동물','공룡 시대부터 살아온 동물이에요. 눈과 코만 물 밖에 내놓고 숨어요.'],
+  '목 긴 공룡':['아주 옛날 숲','나뭇잎','브라키오사우루스는 키가 4층 건물만 했어요. 풀만 먹었어요.'],
+  '티라노사우루스':['아주 옛날 숲','다른 공룡','이빨 하나가 바나나만 했어요. 6600만 년 전에 사라졌어요.'],
+  '새우':['바다·강','작은 생물','몸이 딱딱한 껍데기로 덮여 있어요. 커지면 껍데기를 벗어요(탈피).'],
+  '꽃게':['바다','조개·작은 생물','옆으로 걸어요. 집게발로 먹이를 잡아요.'],
+  '바닷가재':['바다 밑','조개·물고기','집게발 두 개가 생김새가 달라요. 하나는 부수고 하나는 잘라요.'],
+  '오징어':['바다','물고기·새우','다리가 10개예요. 먹물을 뿜고 도망가요.'],
+  '문어':['바다 밑 바위','게·조개','다리가 8개, 심장이 3개예요. 몸 색깔을 바꿔 숨어요.']
 };
 var WORLDS = {land:'🌳 육지', sky:'☁️ 하늘', sea:'🌊 바다'};
-var EVO_XP = [0, 120, 350, 700, 1200];       // 단계별로 필요한 누적 먹이 (10/3 "성장이 너무 빠르다" → 약 5배)
+/* 단계별 누적 먹이 — 처음(25·70·140·240)의 3배 정도로, 단계가 많아진 만큼 끝까지 이어진다 */
+var EVO_XP = [0, 75, 200, 400, 650, 950, 1300];
 
 /* 숫자 쓰기 길 — 4~5세: 숫자 따라 쓰기 → 세기 → 묶어 세기 */
 var YU_LEVELS = [];
@@ -258,6 +341,9 @@ var TRACKS = {
 };
 var AVATARS = ['🧒','👧','👦','👶','🧑','👩','🐻','🐰'];
 function track(){ return TRACKS[kid().track]; }
+function pet(){ var x = kid(); return (x && x.pets[x.track]) || null; }          // 지금 놀이에서 키우는 동물
+function petIn(x, t){ return x.pets[t] || null; }
+function markSeen(p){ if(!p) return; var x = kid(), s = petStage(p); if(s > (x.seen[p.a]==null ? -1 : x.seen[p.a])){ x.seen[p.a] = s; save(); } }
 function stars(){ var x = kid(); x.stars[x.track] = x.stars[x.track] || {}; return x.stars[x.track]; }
 
 /* ═══════════════ 저장 ═══════════════ */
@@ -273,7 +359,17 @@ function load(){
   d.order.forEach(function(k){
     var x = d.kids[k] = d.kids[k] || {};
     x.name = x.name || '친구'; x.avatar = x.avatar || '🧒'; x.track = x.track || 'write';
-    x.pet = x.pet || null;           // {a:'dog', name:'뭉치', xp:0}
+    x.pets = x.pets || {};           // 놀이(수준) → {a:'dog', name:'뭉치', xp:0}  (놀이마다 동물 하나)
+    x.seen = x.seen || {};           // 동물 → 본 가장 높은 단계 (도감)
+    if(x.pet){                       // 예전: 프로필에 동물 하나 → 지금 놀이의 동물로 옮긴다
+      /* 예전 단계 → 새 단계 중 «같은 모습» 자리로 (표범이던 아이가 검은 고양이로 작아 보이지 않게) */
+      var MAP = {dog:[0,1,3,4], cat:[0,1,3,4], tiger:[0,1,4], chick:[0,1,2,3,5], parrot:[0,3,4], fish:[0,1,4,5], turtle:[0,1,3]};
+      var op = x.pet, m = MAP[op.a] || [0,1,2,3], OLD = d.xp2 ? [0,120,350,700,1200] : [0,25,70,140,240], os = 0;
+      for(var oi=0; oi<m.length; oi++) if(op.xp >= OLD[oi]) os = oi;
+      var st = m[os];
+      op.xp = EVO_XP[st] || 0;
+      x.pets[x.track] = op; x.seen[op.a] = Math.max(x.seen[op.a]||0, st); delete x.pet;
+    }
     x.food = x.food || 0;
     x.dex = x.dex || [];             // 다 키운 동물
     x.stars = x.stars || {};         // 수준 → {레벨 번호 → 별 수}
@@ -283,18 +379,7 @@ function load(){
     x.miss = x.miss || {};           // 틀린 문제 → 횟수
     x.tickets = x.tickets || 0;      // 🎟 게임 티켓
   });
-  /* 10/3 성장 속도를 늦췄다 — 이미 키운 동물이 작아지지 않게 «지금 단계»는 그대로 두고 경험치만 새 기준으로 옮긴다 */
-  if(!d.xp2){
-    var OLD = [0, 25, 70, 140, 240];
-    d.order.forEach(function(k){
-      var p = d.kids[k] && d.kids[k].pet; if(!p) return;
-      var n = ANIMALS[p.a] ? ANIMALS[p.a].st.length : 4, st = 0;
-      for(var i=0;i<n;i++) if(p.xp >= OLD[i]) st = i;
-      var f = (st < n-1) ? (p.xp - OLD[st]) / (OLD[st+1] - OLD[st]) : 0;
-      p.xp = Math.round(EVO_XP[st] + (st < n-1 ? f * (EVO_XP[st+1] - EVO_XP[st]) : 0));
-    });
-    d.xp2 = 1;
-  }
+  d.xp2 = 1;
   return d;
 }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(D)); }catch(e){} }
@@ -375,9 +460,9 @@ function vPick(){
     '<div class="top"><span class="sp"></span><button class="ghost" id="toParent">👨‍👩‍👧 부모</button></div>'+
     '<h1>누가 놀까? 🎈</h1><p class="sub">'+(D.order.length ? '이름을 눌러 주세요' : '「＋ 새 친구」를 눌러 프로필을 만들어요')+'</p>'+
     '<div class="kids">'+D.order.map(function(k, i){
-      var x = D.kids[k], p = x.pet, T = TRACKS[x.track];
+      var x = D.kids[k], p = x.pets[x.track], T = TRACKS[x.track], nAni = Object.keys(x.seen).length;
       return '<button class="kid '+(i%2?'ya':'yu')+'" data-k="'+k+'"><span class="em">'+(p ? petEmoji(p) : x.avatar)+'</span>'+
-        '<b>'+esc(x.name)+'</b><small>'+T.em+' '+T.n+(p ? ' · '+esc(p.name) : '')+'</small></button>';
+        '<b>'+esc(x.name)+'</b><small>'+T.em+' '+T.n+(p ? ' · '+esc(p.name) : '')+(nAni ? '<br>📖 동물 '+nAni+'마리' : '')+'</small></button>';
     }).join('')+
     '<button class="kid" id="addKid" style="border-style:dashed"><span class="em" style="opacity:.5">＋</span><b style="font-size:24px">새 친구</b><small>프로필 만들기</small></button></div>';
   el('s-pick').querySelectorAll('[data-k]').forEach(function(b){
@@ -385,7 +470,7 @@ function vPick(){
       ac(); K = b.dataset.k;
       if(overLimit(K)) return goSleep();
       bumpStreak();
-      if(!kid().pet) vAdopt(); else vHome();
+      if(!pet()) vAdopt(); else vHome();
       startClock();
     };
   });
@@ -437,7 +522,7 @@ function vLevel(first){
   el('s-adopt').querySelectorAll('[data-tr]').forEach(function(b){
     b.onclick = function(){
       x.track = b.dataset.tr; save(); sWin(); say(TRACKS[x.track].n+'!');
-      if(!x.pet) vAdopt(); else vHome();
+      if(!pet()) vAdopt(); else vHome();
     };
   });
   show('s-adopt');
@@ -446,26 +531,27 @@ function vLevel(first){
 /* ═══════════════ 화면: 동물 입양 ═══════════════ */
 function vAdopt(){
   var w = 'land', pick = null;
+  function usedBy(a){ var x = kid(), r = ''; Object.keys(x.pets).forEach(function(t){ if(t !== x.track && x.pets[t] && x.pets[t].a === a) r = t; }); return r; }
   function draw(){
     el('s-adopt').innerHTML =
-      '<div class="top"><button class="ghost" id="aBack">◀ 처음</button><span class="sp"></span></div>'+
-      '<h1>'+esc(kid().name)+'의 동물 친구를 골라요!</h1><p class="sub">세상을 고르고, 키우고 싶은 동물을 눌러요</p>'+
+      '<div class="top"><button class="ghost" id="aBack">◀ '+(pet() ? '홈' : '처음')+'</button><span class="sp"></span></div>'+
+      '<h1>'+track().em+' '+track().n+'에서 키울 동물!</h1><p class="sub">놀이마다 동물 한 마리 · 다른 놀이에서 키우는 동물은 못 골라요</p>'+
       '<div class="worlds">'+Object.keys(WORLDS).map(function(k){
         return '<button class="world '+k+(k===w?' on':'')+'" data-w="'+k+'">'+WORLDS[k]+'</button>'; }).join('')+'</div>'+
       '<div class="animals">'+Object.keys(ANIMALS).filter(function(a){ return ANIMALS[a].w===w; }).map(function(a){
-        var A = ANIMALS[a], owned = kid().dex.indexOf(a)>=0;
-        return '<button class="ani'+(pick===a?' on':'')+'" data-a="'+a+'"><div class="em">'+A.st[0][0]+'</div><b>'+A.n+(owned?' ✅':'')+'</b>'+
-          '<small>'+A.st.map(function(s){ return s[0]; }).join(' → ')+'</small></button>';
+        var A = ANIMALS[a], owned = kid().dex.indexOf(a)>=0, busy = usedBy(a);
+        return '<button class="ani'+(pick===a?' on':'')+'" data-a="'+a+'"'+(busy?' disabled style="opacity:.4"':'')+'><div class="em">'+A.st[0][0]+'</div><b>'+A.n+(owned?' ✅':'')+'</b>'+
+          '<small>'+(busy ? TRACKS[busy].em+' '+TRACKS[busy].n+'에서 키우는 중' : A.st.map(function(s){ return s[0]; }).join(' → '))+'</small></button>';
       }).join('')+'</div>'+
       (pick ? '<div style="margin-top:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center">'+
         '<input id="aName" maxlength="8" placeholder="이름 (예: 뭉치)" style="font-size:24px;width:220px">'+
         '<button class="big" id="aGo">이 친구로 할래!</button></div>' : '');
     el('s-adopt').querySelectorAll('[data-w]').forEach(function(b){ b.onclick = function(){ w = b.dataset.w; pick = null; sPop(); draw(); }; });
     el('s-adopt').querySelectorAll('[data-a]').forEach(function(b){ b.onclick = function(){ pick = b.dataset.a; sPop(); say(ANIMALS[pick].n); draw(); }; });
-    el('aBack').onclick = vPick;
+    el('aBack').onclick = pet() ? vHome : vPick;
     if(el('aGo')) el('aGo').onclick = function(){
       var nm = (el('aName').value||'').trim() || ANIMALS[pick].n;
-      kid().pet = {a:pick, name:nm, xp:0}; save(); sWin(); say(nm+', 반가워!'); vHome();
+      kid().pets[kid().track] = {a:pick, name:nm, xp:0}; markSeen(pet()); save(); sWin(); say(nm+', 반가워!'); vHome();
     };
   }
   draw(); show('s-adopt');
@@ -473,7 +559,8 @@ function vAdopt(){
 
 /* ═══════════════ 화면: 펫 홈 ═══════════════ */
 function vHome(){
-  var x = kid(), p = x.pet, A = ANIMALS[p.a], s = petStage(p), last = s === A.st.length-1;
+  var x = kid(), p = pet(); if(!p) return vAdopt();
+  var A = ANIMALS[p.a], s = petStage(p), last = s === A.st.length-1; markSeen(p);
   var cur = EVO_XP[s], nxt = last ? cur : EVO_XP[s+1], pct = last ? 100 : Math.round((p.xp-cur)/(nxt-cur)*100);
   var L = track().levels, next = nextLevel();
   el('s-home').innerHTML =
@@ -483,9 +570,9 @@ function vHome(){
     '<div class="home">'+
       '<div class="petbox '+A.w+'" id="petbox">'+
         '<div class="pet" id="pet">'+petEmoji(p)+'</div>'+
-        '<div class="petname">'+esc(p.name)+'</div><div class="stage">'+A.st[s][1]+' · '+(s+1)+'/'+A.st.length+'단계</div>'+
+        '<div class="stage" style="margin:0 0 4px">'+track().em+' '+track().n+'에서 키우는 친구</div><div class="petname">'+esc(p.name)+'</div><div class="stage">'+A.st[s][1]+' · '+(s+1)+'/'+A.st.length+'단계</div>'+
         '<div class="xp"><i style="width:'+pct+'%"></i></div>'+
-        (last ? '<div class="stage">🎉 다 자랐어요! 도감에서 새 친구를 데려올 수 있어요</div>' : '<div class="stage">'+(nxt-p.xp)+'개 더 먹으면 진화!</div>')+
+        (last ? '<div class="stage">🎉 다 자랐어요! 도감에서 새 친구를 데려올 수 있어요 · 다른 놀이에서도 동물을 키워 보세요</div>' : '<div class="stage">'+(nxt-p.xp)+'개 더 먹으면 진화!</div>')+
         '<button class="big feed" id="feedB"'+(x.food? '' : ' style="opacity:.5"')+'>🍖 먹이 주기</button></div>'+
       '<div class="side">'+
         '<div class="path"><h3>'+esc(kid().name)+'의 놀이 길</h3><div class="nodes">'+L.map(function(lv, i){
@@ -502,7 +589,7 @@ function vHome(){
           '<button class="act" id="goLv"><span class="e">'+track().em+'</span>수준 바꾸기</button>'+
         '</div></div></div>';
   el('hBack').onclick = vPick;
-  el('pet').onclick = function(){ pet(); };
+  el('pet').onclick = function(){ petTap(); };
   el('goLv').onclick = function(){ vLevel(false); };
   el('feedB').onclick = feed;
   el('goNext').onclick = function(){ startLevel(Math.min(next, L.length-1)); };
@@ -514,11 +601,11 @@ function vHome(){
   show('s-home');
 }
 function nextLevel(){ var S = stars(), L = track().levels; for(var i=0;i<L.length;i++) if(!S[i]) return i; return L.length; }
-function pet(){
+function petTap(){
   var e = el('pet'); e.classList.remove('hop'); void e.offsetWidth; e.classList.add('hop');
   hearts('💕'); sPop();
-  var A = ANIMALS[kid().pet.a];
-  say(A.w==='land' && /dog/.test(kid().pet.a) ? '멍멍!' : /cat|tiger/.test(kid().pet.a) ? '야옹!' : /chick/.test(kid().pet.a) ? '삐약삐약!' : '좋아!');
+  var a = pet().a;
+  say(/dog/.test(a) ? '멍멍!' : /cat|tiger/.test(a) ? '야옹!' : /chick/.test(a) ? '삐약삐약!' : '좋아!');
 }
 function hearts(em){
   var box = el('petbox'); if(!box) return;
@@ -527,7 +614,7 @@ function hearts(em){
     box.appendChild(h); (function(h){ setTimeout(function(){ h.remove(); }, 1400); })(h); }
 }
 function feed(){
-  var x = kid(), p = x.pet; if(!x.food) { say('문제를 풀면 먹이를 받아요!'); return toast('문제를 풀면 🍖 먹이를 받아요'); }
+  var x = kid(), p = pet(); if(!x.food) { say('문제를 풀면 먹이를 받아요!'); return toast('문제를 풀면 🍖 먹이를 받아요'); }
   var before = petStage(p), n = Math.min(x.food, 5);
   x.food -= n; p.xp += n; save();
   hearts('🍖'); sPop();
@@ -535,13 +622,15 @@ function feed(){
   if(after > before) evolve(before, after); else vHome();
 }
 function evolve(b, a){
-  var p = kid().pet, A = ANIMALS[p.a], e = el('evo');
+  var p = pet(), A = ANIMALS[p.a], e = el('evo'), fact = FACTS[A.st[a][1]];
+  markSeen(p);
   e.innerHTML = '<div class="em">'+A.st[a][0]+(A.st[a][2]||'')+'</div><b>'+esc(jo(p.name,'이','가'))+' '+joRo(A.st[a][1])+' 진화했어요!</b>'+
+    (fact ? '<p class="evofact">📖 '+esc(fact[2])+'</p>' : '')+
     '<button class="big" id="evoOk">우와! 👏</button>';
-  e.classList.add('on'); sWin(); say(jo(p.name,'이','가')+' '+joRo(A.st[a][1])+' 진화했어요!');
+  e.classList.add('on'); sWin(); say(jo(p.name,'이','가')+' '+joRo(A.st[a][1])+' 진화했어요! '+(fact ? fact[2] : ''));
   el('evoOk').onclick = function(){
     e.classList.remove('on');
-    if(a === A.st.length-1 && kid().dex.indexOf(p.a)<0){ kid().dex.push(p.a); save(); toast('📖 도감에 '+A.n+' 등록!'); }
+    if(a === A.st.length-1 && kid().dex.indexOf(p.a)<0){ kid().dex.push(p.a); save(); toast('📖 도감에 '+A.n+' 완성!'); }
     vHome();
   };
 }
@@ -587,7 +676,7 @@ function finish(){
     '<h1>'+RUN.lv.name+' 끝!</h1><div class="stars">'+'⭐'.repeat(stars)+'<span style="opacity:.2">'+'⭐'.repeat(3-stars)+'</span></div>'+
     '<p class="reward">🍖 먹이 '+(RUN.ok + bonus)+'개 · 🎟 게임 티켓 '+tk+'장 받았어요!</p>'+
     '<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">'+
-      '<button class="big" id="dFeed">'+esc(x.pet.name)+'에게 먹이 주러 가기</button>'+
+      '<button class="big" id="dFeed">'+esc(pet().name)+'에게 먹이 주러 가기</button>'+
       '<button class="ghost" id="dAgain">한 번 더</button></div>';
   el('dFeed').onclick = vHome;
   el('dAgain').onclick = function(){ startLevel(RUN.idx); };
@@ -849,7 +938,7 @@ function gameOver(title, food){
   gameStop();
   kid().food += food; save(); sWin(); say(title);
   el('s-done').innerHTML = '<h1>'+title+'</h1><p class="reward">🍖 먹이 '+food+'개 받았어요!</p>'+
-    '<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center"><button class="big" id="goH">'+esc(kid().pet.name)+'에게 가기</button>'+
+    '<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center"><button class="big" id="goH">'+esc(pet().name)+'에게 가기</button>'+
     (kid().tickets ? '<button class="ghost" id="goG">🎮 한 판 더 (🎟 '+kid().tickets+')</button>' : '')+'</div>';
   el('goH').onclick = vHome; if(el('goG')) el('goG').onclick = vGames;
   show('s-done');
@@ -944,7 +1033,7 @@ function gBlocks(){
 
 /* ── 🏎 카트 달리기 — 3줄 도로, 좌우로 피하고 먹이 줍기 ── */
 function gKart(){
-  var p = kid().pet, me = p ? petEmoji(p) : '🐶';
+  var p = pet(), me = p ? petEmoji(p) : '🐶';
   el('s-play').innerHTML = '<div class="qtop"><button class="ghost" id="gX">✕</button><span class="timer" id="gT">⏱ 3:00</span><span style="flex:1"></span>'+
     '<span class="chip" id="gS">🍖 0</span><span class="chip" id="gH">❤️❤️❤️</span></div>'+
     '<div class="qbox" style="gap:10px"><div class="road" id="road"><div class="lanes"></div><div class="kart" id="kart"><span class="kp">'+me+'</span><span class="kc">🏎</span></div></div>'+
@@ -989,24 +1078,45 @@ function gKart(){
 
 /* ═══════════════ 도감 ═══════════════ */
 function vDex(){
-  var x = kid();
+  var x = kid(), keys = Object.keys(ANIMALS), seenN = Object.keys(x.seen).length;
   el('s-dex').innerHTML = '<div class="top"><button class="ghost" id="xBack">◀ 홈</button><span class="sp"></span></div>'+
-    '<h1>📖 '+esc(kid().name)+'의 동물 도감</h1><p class="sub">다 키운 동물이 모여요 · '+x.dex.length+' / '+Object.keys(ANIMALS).length+'</p>'+
-    '<div class="dex">'+Object.keys(ANIMALS).map(function(a){
-      var A = ANIMALS[a], has = x.dex.indexOf(a)>=0, last = A.st[A.st.length-1];
-      return '<div><div class="em '+(has?'':'no')+'">'+last[0]+(last[2]||'')+'</div><b>'+(has ? last[1] : '???')+'</b></div>';
+    '<h1>📖 '+esc(x.name)+'의 동물 도감</h1><p class="sub">만난 동물 '+seenN+' / '+keys.length+' · 다 키운 동물 '+x.dex.length+' · 동물을 누르면 생물 카드가 나와요</p>'+
+    '<div class="dex">'+keys.map(function(a){
+      var A = ANIMALS[a], sn = x.seen[a], has = sn != null, top = has ? A.st[sn] : A.st[0];
+      var raising = Object.keys(x.pets).filter(function(t){ return x.pets[t].a === a; })[0];
+      return '<button data-dx="'+a+'"'+(has?'':' disabled')+'><div class="em '+(has?'':'no')+'">'+top[0]+(has ? (top[2]||'') : '')+'</div>'+
+        '<b>'+(has ? A.n : '???')+'</b><small>'+(has ? (sn+1)+'/'+A.st.length+'단계'+(x.dex.indexOf(a)>=0?' ✅':'')+(raising ? '<br>'+TRACKS[raising].em+' 키우는 중' : '') : WORLDS[A.w])+'</small></button>';
     }).join('')+'</div>'+
-    (x.pet && petStage(x.pet) === ANIMALS[x.pet.a].st.length-1 ?
-      '<p class="sub" style="margin-top:16px">'+esc(jo(x.pet.name,'이','가'))+' 다 자랐어요! 새 친구를 데려올까요? (지금 친구는 도감에 남아요)</p><button class="big" id="xNew">🐾 새 친구 데려오기</button>' : '');
+    (pet() && petStage(pet()) === ANIMALS[pet().a].st.length-1 ?
+      '<p class="sub" style="margin-top:16px">'+esc(jo(pet().name,'이','가'))+' 다 자랐어요! 이 놀이에서 새 친구를 키울까요? (지금 친구는 도감에 남아요)</p><button class="big" id="xNew">🐾 새 친구 데려오기</button>' : '');
   el('xBack').onclick = vHome;
-  if(el('xNew')) el('xNew').onclick = function(){ vAdopt(); };
+  if(el('xNew')) el('xNew').onclick = function(){ delete kid().pets[kid().track]; save(); vAdopt(); };
+  el('s-dex').querySelectorAll('[data-dx]').forEach(function(b){ b.onclick = function(){ dexCard(b.dataset.dx); }; });
+  show('s-dex');
+}
+/* 생물 카드 — 진화 단계마다 사는 곳·먹이·사실. 아직 못 본 단계는 ❓ (궁금해서 더 키우게) */
+function dexCard(a){
+  var x = kid(), A = ANIMALS[a], sn = x.seen[a]||0;
+  el('s-dex').innerHTML = '<div class="top"><button class="ghost" id="xBack">◀ 도감</button><span class="sp"></span><span class="chip">'+WORLDS[A.w]+'</span></div>'+
+    '<h1>'+A.st[sn][0]+' '+A.n+' 가족</h1><p class="sub">'+(sn+1)+' / '+A.st.length+'단계까지 만났어요</p>'+
+    '<div class="evorow">'+A.st.map(function(st, i){ return '<span class="'+(i<=sn?'':'no')+'">'+(i<=sn ? st[0] : '❓')+'</span>'; }).join('<i>→</i>')+'</div>'+
+    '<div class="facts">'+A.st.map(function(st, i){
+      var f = FACTS[st[1]];
+      if(i > sn) return '<div class="fact lock"><div class="fe">❓</div><div><b>???</b><p>더 키우면 만날 수 있어요!</p></div></div>';
+      return '<div class="fact"><div class="fe">'+st[0]+(st[2]||'')+'</div><div><b>'+st[1]+'</b>'+
+        (f ? '<p>🏠 '+esc(f[0])+' · 🍽 '+esc(f[1])+'</p><p>'+esc(f[2])+'</p>' : '')+
+        '<button class="ghost sm" data-say="'+i+'">🔊 들어 보기</button></div></div>';
+    }).join('')+'</div>';
+  el('xBack').onclick = vDex;
+  el('s-dex').querySelectorAll('[data-say]').forEach(function(b){ b.onclick = function(){
+    var st = A.st[+b.dataset.say], f = FACTS[st[1]]; say(st[1]+'. '+(f ? f[2] : '')); }; });
   show('s-dex');
 }
 
 /* ═══════════════ 잠자기 (하루 시간 끝) ═══════════════ */
 function goSleep(){
   stopClock(); gameStop();
-  var p = kid().pet;
+  var p = pet();
   el('s-sleep').innerHTML = '<div style="flex:1"></div><div class="zz">💤</div><div class="pet" style="font-size:150px">'+(p ? petEmoji(p) : '🐶')+'</div>'+
     '<h1>'+(p ? esc(jo(p.name,'이','가'))+' ' : '')+'코~ 자요</h1><p class="sub" style="color:#e6e0ff;font-size:22px">오늘 놀이 시간이 끝났어요. 내일 또 만나요! 🌙</p>'+
     '<button class="ghost" id="slBack" style="margin-top:20px">처음 화면</button><div style="flex:1"></div>';
@@ -1046,7 +1156,8 @@ function vParent(){
     var x = D.kids[k], T = TRACKS[x.track], L = T.levels, done = Object.keys(x.stars[x.track]||{}).length;
     var days = Object.keys(x.days).sort().slice(-7);
     var miss = Object.keys(x.miss).sort(function(a,b){ return x.miss[b]-x.miss[a]; }).slice(0,8);
-    return '<div class="pcard"><h3>'+x.avatar+' '+esc(x.name)+(x.pet ? ' · '+petEmoji(x.pet)+' '+esc(x.pet.name) : '')+'</h3>'+
+    return '<div class="pcard"><h3>'+x.avatar+' '+esc(x.name)+' · '+Object.keys(x.pets).map(function(t){ var q = x.pets[t]; return TRACKS[t].em+petEmoji(q)+' '+esc(q.name); }).join('  ')+'</h3>'+
+      '<table><tr><td>도감</td><td>동물 '+Object.keys(x.seen).length+'마리 · 다 키운 동물 '+x.dex.length+'마리</td></tr></table>'+
       '<table><tr><td>오늘 논 시간</td><td><b>'+minutesToday(k)+'분</b></td></tr>'+
       '<tr><td>수준</td><td>'+T.em+' '+T.n+' · '+done+' / '+L.length+'단계 · 다음: '+(L[done] ? L[done].name : '모두 완료!')+'</td></tr>'+
       (x.best[x.track] ? '<tr><td>스피드 최고 기록</td><td>60초에 <b>'+x.best[x.track]+'</b>문제</td></tr>' : '')+
