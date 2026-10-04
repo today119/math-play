@@ -60,7 +60,7 @@ h1{font-size:clamp(28px,6vw,46px);margin:8px 0 4px;letter-spacing:-1px}
 
 /* 펫 홈 */
 .home{width:100%;max-width:960px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;flex:1;min-height:0}
-@media(max-width:760px),(orientation:portrait){ .home{grid-template-columns:minmax(0,1fr)} }
+@media(max-width:760px),(orientation:portrait){ .home{grid-template-columns:minmax(0,1fr);flex:0 0 auto;min-height:auto} .home .petbox{height:auto;overflow:visible} .home .path{flex:none;overflow:visible} }   /* 10/4 폰 세로에서 동물 칸이 눌려 먹이 버튼이 잘림 */
 @media(max-width:520px){
   .chip{font-size:15px;padding:5px 9px} .ghost{font-size:14px;padding:8px 10px}
   .node{width:58px;height:58px;font-size:18px} .act{font-size:17px;min-height:60px} .act .e{font-size:24px}
