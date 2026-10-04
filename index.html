@@ -1908,6 +1908,10 @@ function vParent(){
 /* 시작 */
 document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, {passive:false});
 document.addEventListener('visibilitychange', function(){ if(document.hidden) try{ speechSynthesis.cancel(); }catch(e){} });
+/* 설정 링크 — ?tts=키 로 열면 이 기기에 구글 음성 키를 저장하고 주소에서 지운다(아이패드에서 긴 키를 치지 않게) */
+(function(){ try{ var m = location.search.match(/[?&]tts=([^&]+)/); if(!m) return;
+  var key = decodeURIComponent(m[1]).trim(); D.tts = {key:key, voice:(D.tts||{}).voice || 'ko-KR-Neural2-A'}; TTS_FAIL = false; save();
+  history.replaceState(null, '', location.pathname); setTimeout(function(){ toast('🔊 구글 목소리를 연결했어요'); }, 400); }catch(e){} })();
 vPick();
 </script>
 </body>
