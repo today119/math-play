@@ -1438,7 +1438,7 @@ function qGroup(){
 
 /* ── 숫자 따라 쓰기 ──
    숫자 모양 = 획(점들의 배열), 좌표는 100×140 칸.
-   채점: 획 위의 점들이 손가락 선 가까이에 «충분히» 덮였는지(덮임률) + 엉뚱한 곳에 그린 비율(벗어남). 4살이라 획 순서는 보지 않는다. */
+   10/4부터 «길 따라 쓰기»: 시작점을 끌면 선이 길 위로만 그려진다(획 순서·방향대로). */
 var DIGITS = (function(){
   function arc(cx, cy, rx, ry, a0, a1, n){ var p = []; for(var i=0;i<=n;i++){ var a = (a0 + (a1-a0)*i/n)*Math.PI/180; p.push([cx + rx*Math.cos(a), cy + ry*Math.sin(a)]); } return p; }
   function line(x0,y0,x1,y1,n){ var p=[]; n=n||12; for(var i=0;i<=n;i++) p.push([x0+(x1-x0)*i/n, y0+(y1-y0)*i/n]); return p; }
@@ -1458,73 +1458,93 @@ var DIGITS = (function(){
 function qTrace(){ traceScreen(RUN.lv.d, function(){ right(2); }, true); }
 function startFree(){ RUN = null; traceScreen(Math.floor(Math.random()*10), null, false); }
 function traceScreen(d, onOK, inLevel){
+  /* 10/4 사용자: "시작점을 끌면 숫자가 예쁘게 그려지게 — 연우가 실패 경험에 흥미를 잃지 않게"
+     → 길 따라 쓰기: 분홍 동그라미를 끌면 색 선이 회색 길 «위로만» 그려진다. 길에서 멀리 벗어나면 실패가 아니라 동그라미가 멈춰 기다린다.
+     별: 한 번도 안 벗어나고 쓴 숫자(깔끔)가 2번 이상이면 별 3개 */
   el('s-play').innerHTML = (inLevel ? qTop() : '<div class="qtop"><button class="ghost" id="qX">✕</button><span style="flex:1"></span></div>')+
-    '<div class="qbox"><div class="sub" style="font-size:24px;margin:0">숫자 <b style="font-size:40px">'+d+'</b> 를 따라 써 볼까? ✏️</div>'+
+    '<div class="qbox"><div class="sub" style="font-size:24px;margin:0">숫자 <b style="font-size:40px">'+d+'</b> ✏️ 동그라미를 끌어요</div>'+
     '<div class="trace" id="tr"><canvas id="cv"></canvas></div>'+
-    '<div class="tbtns"><button class="ghost" id="tClr">🧽 지우기</button><button class="big" id="tOk">다 썼어요!</button>'+
+    '<div class="tbtns"><button class="ghost" id="tClr">🧽 처음부터</button>'+
     (inLevel ? '' : '<button class="ghost" id="tNew">🔀 다른 숫자</button>')+'</div></div>';
   if(inLevel) bindTop(); else el('qX').onclick = vHome;
   show('s-play');
-  say('숫자 '+kor(d)+', 따라 써 볼까?');
-  var cv = el('cv'), box = el('tr'), ctx, W, H, ink = [], drawing = false, cur = null, tries = 0;
-  function size(){ var r = box.getBoundingClientRect(), dpr = window.devicePixelRatio||1; W = r.width; H = r.height;
-    cv.width = W*dpr; cv.height = H*dpr; ctx = cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); paint(); }
+  say('숫자 '+kor(d)+'! 분홍 동그라미를 손가락으로 끌어 봐요.');
+  var cv = el('cv'), box = el('tr'), ctx, W, H, lw, S = [], si = 0, prog = 0, drawing = false, strays = 0, done = false, t0 = performance.now(), raf = 0;
   function P(pt){ return [pt[0]/100*W, pt[1]/140*H]; }
-  function paint(ok){
-    ctx.clearRect(0,0,W,H);
-    var lw = W*0.11;
-    DIGITS[d].forEach(function(st, si){            // 회색 길
-      ctx.beginPath(); st.forEach(function(p,i){ var q = P(p); i ? ctx.lineTo(q[0],q[1]) : ctx.moveTo(q[0],q[1]); });
-      ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = ok ? '#c9f2b0' : '#efe6d4'; ctx.lineWidth = lw; ctx.stroke();
-      ctx.setLineDash([2, lw*0.6]); ctx.strokeStyle = '#c8b48a'; ctx.lineWidth = lw*0.18; ctx.stroke(); ctx.setLineDash([]);
-      var s0 = P(st[0]);                            // 시작점 + 번호
-      ctx.fillStyle = '#ff8fb1'; ctx.beginPath(); ctx.arc(s0[0], s0[1], lw*0.42, 0, 7); ctx.fill();
-      ctx.fillStyle = '#fff'; ctx.font = '900 '+Math.round(lw*0.5)+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(si+1, s0[0], s0[1]+1);
-    });
-    ink.forEach(function(st){                      // 아이가 그린 선
-      ctx.beginPath(); st.forEach(function(p,i){ i ? ctx.lineTo(p[0],p[1]) : ctx.moveTo(p[0],p[1]); });
-      ctx.strokeStyle = ok ? '#38c172' : '#6c5ce7'; ctx.lineWidth = lw*0.5; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.stroke();
-    });
+  function build(){                                  // 획 → 캔버스 좌표 + 누적 길이
+    S = DIGITS[d].map(function(st){ var p = st.map(P), L = [0]; for(var i=1;i<p.length;i++) L.push(L[i-1] + Math.hypot(p[i][0]-p[i-1][0], p[i][1]-p[i-1][1])); return {p:p, L:L, len:L[L.length-1]}; });
   }
-  function pos(e){ var r = cv.getBoundingClientRect(), t = e.touches ? e.touches[0] : e; return [t.clientX - r.left, t.clientY - r.top]; }
-  function down(e){ e.preventDefault(); drawing = true; cur = [pos(e)]; ink.push(cur); paint(); }
-  function move(e){ if(!drawing) return; e.preventDefault(); cur.push(pos(e)); paint(); }
-  function up(){ drawing = false; }
-  cv.addEventListener('pointerdown', down); cv.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
-  cv.addEventListener('touchstart', function(e){ e.preventDefault(); }, {passive:false});
-  function score(){
-    var tpl = []; DIGITS[d].forEach(function(st){ st.forEach(function(p){ tpl.push(P(p)); }); });
-    var pts = []; ink.forEach(function(st){ st.forEach(function(p){ pts.push(p); }); });
-    if(pts.length < 5) return {cov:0, out:1, len:0};
-    /* 길(회색 띠) 폭 안쪽만 인정. 띠 안을 마구 칠해서 덮는 것은 «그린 길이» 로 걸러낸다 */
-    var R = W*0.075, hit = 0, off = 0;
-    tpl.forEach(function(t){ if(pts.some(function(p){ return Math.hypot(p[0]-t[0], p[1]-t[1]) < R; })) hit++; });
-    pts.forEach(function(p){ if(!tpl.some(function(t){ return Math.hypot(p[0]-t[0], p[1]-t[1]) < R*1.25; })) off++; });
-    function plen(list){ var L = 0; for(var i=1;i<list.length;i++) L += Math.hypot(list[i][0]-list[i-1][0], list[i][1]-list[i-1][1]); return L; }
-    var tl = 0; DIGITS[d].forEach(function(st){ tl += plen(st.map(P)); });
-    var il = 0; ink.forEach(function(st){ il += plen(st); });
-    return {cov: hit/tpl.length, out: off/pts.length, len: il/tl};
+  function at(s, dist){ var p = s.p, L = s.L; if(dist <= 0) return p[0].slice(); for(var i=1;i<p.length;i++) if(L[i] >= dist){ var f = (dist-L[i-1])/((L[i]-L[i-1])||1); return [p[i-1][0]+(p[i][0]-p[i-1][0])*f, p[i-1][1]+(p[i][1]-p[i-1][1])*f]; } return p[p.length-1].slice(); }
+  function pathTo(s, dist){ ctx.beginPath(); var p = s.p; ctx.moveTo(p[0][0], p[0][1]); for(var i=1;i<p.length && s.L[i] <= dist;i++) ctx.lineTo(p[i][0], p[i][1]); var e = at(s, dist); ctx.lineTo(e[0], e[1]); }
+  function size(){ var r = box.getBoundingClientRect(), dpr = window.devicePixelRatio||1; W = r.width; H = r.height; lw = W*0.11;
+    cv.width = W*dpr; cv.height = H*dpr; ctx = cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); var keep = S.length ? prog/(S[si] ? S[si].len : 1) : 0; build(); if(S[si]) prog = keep*S[si].len; paint(); }
+  function paint(){
+    ctx.clearRect(0,0,W,H); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    S.forEach(function(s){ pathTo(s, s.len); ctx.strokeStyle = done ? '#c9f2b0' : '#efe6d4'; ctx.lineWidth = lw; ctx.stroke();
+      ctx.setLineDash([2, lw*0.6]); ctx.strokeStyle = '#c8b48a'; ctx.lineWidth = lw*0.18; ctx.stroke(); ctx.setLineDash([]); });
+    S.forEach(function(s, k){                        // 다 쓴 획 + 쓰는 중인 획 (무지개빛 보라)
+      var dist = k < si || done ? s.len : k === si ? prog : 0; if(dist <= 0) return;
+      pathTo(s, dist); var g = ctx.createLinearGradient(0, 0, W, H); g.addColorStop(0, done ? '#38c172' : '#a06cf0'); g.addColorStop(1, done ? '#2fb5a0' : '#ff6fa8');
+      ctx.strokeStyle = g; ctx.lineWidth = lw*0.62; ctx.stroke(); });
+    if(done) return;
+    var s = S[si], pen = at(s, prog), pulse = 1 + 0.12*Math.sin((performance.now()-t0)/180);
+    var ah = at(s, Math.min(s.len, prog + lw*1.3));  // 가는 방향 화살표
+    if(prog < s.len - 2){ var dx = ah[0]-pen[0], dy = ah[1]-pen[1], a = Math.atan2(dy, dx);
+      ctx.save(); ctx.translate(ah[0], ah[1]); ctx.rotate(a); ctx.fillStyle = 'rgba(255,111,168,.55)'; ctx.beginPath(); ctx.moveTo(lw*0.32, 0); ctx.lineTo(-lw*0.2, -lw*0.26); ctx.lineTo(-lw*0.2, lw*0.26); ctx.fill(); ctx.restore(); }
+    for(var k=si+1;k<S.length;k++){ var q = S[k].p[0]; ctx.fillStyle = '#ffd0df'; ctx.beginPath(); ctx.arc(q[0], q[1], lw*0.34, 0, 7); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = '900 '+Math.round(lw*0.42)+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(k+1, q[0], q[1]+1); }
+    ctx.fillStyle = '#ff6fa8'; ctx.beginPath(); ctx.arc(pen[0], pen[1], lw*0.5*(drawing ? 1.1 : pulse), 0, 7); ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.font = '900 '+Math.round(lw*0.48)+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(prog < 2 ? si+1 : '✏️', pen[0], pen[1]+1);
   }
-  el('tClr').onclick = function(){ ink = []; paint(); sPop(); };
-  if(el('tNew')) el('tNew').onclick = function(){ startFree(); };
-  el('tOk').onclick = function(){
-    var s = score();
-    /* ★ 10/3 정정: 사용자 뜻은 "잘 못 써도 별을 줘서 «별로»" — 오히려 엄격하게.
-       길을 거의 다 덮고(80%↑), 길 밖으로 덜 나가고(25%↓), 마구 칠하지 않아야(길이 2.2배↓) 통과.
-       못 쓰면 별이 줄어든다(RUN.wrong). 아주 잘 쓰면(90%↑·10%↓) 품질 점수에 반영 */
-    if(s.cov >= 0.8 && s.out <= 0.25 && s.len <= 2.2){
-      if(RUN){ RUN.q = RUN.q || []; RUN.q.push(s.cov >= 0.9 && s.out <= 0.12 ? 1 : 0); }
-      paint(true); say(praise()+' '+kor(d)+'!');
-      if(onOK) setTimeout(onOK, 300); else { sGood(); flash('⭐'); kid().food += 1; save(); }
-    } else {
-      if(RUN) RUN.wrong++;
-      sBad();
-      say(s.len > 2.2 ? '마구 칠하지 말고, 길을 따라 한 번에 써 볼까?' :
-          s.out > 0.25 ? '회색 길 밖으로 나갔어. 길 위로 천천히!' : '길을 끝까지 따라 써 볼까? 분홍 동그라미부터!');
-      ink = []; paint();
+  function loop(){ if(!document.body.contains(cv)) return; paint(); raf = requestAnimationFrame(loop); }
+  function pos(e){ var r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+  /* 손가락을 길 위로 투영 — 앞쪽 일정 거리 안에서만 찾는다(0·8 처럼 고리가 겹치는 곳에서 건너뛰지 않게) */
+  function project(f){
+    var s = S[si], best = null, lim = prog + Math.max(lw*3, W*0.35);
+    for(var i=1;i<s.p.length;i++){
+      if(s.L[i] < prog - 1) continue; if(s.L[i-1] > lim) break;
+      var a = s.p[i-1], b = s.p[i], vx = b[0]-a[0], vy = b[1]-a[1], l2 = vx*vx+vy*vy || 1, t = Math.max(0, Math.min(1, ((f[0]-a[0])*vx + (f[1]-a[1])*vy)/l2));
+      var x = a[0]+vx*t, y = a[1]+vy*t, dd = Math.hypot(f[0]-x, f[1]-y), dist = s.L[i-1] + Math.sqrt(l2)*t;
+      if(dist < prog) continue;
+      if(!best || dd < best.dd) best = {dd:dd, dist:Math.min(dist, lim)};
     }
-  };
-  size(); window.onresize = size;
+    return best;
+  }
+  function down(e){
+    if(done) return; e.preventDefault();
+    var f = pos(e), pen = at(S[si], prog);
+    if(Math.hypot(f[0]-pen[0], f[1]-pen[1]) < lw*1.1){ drawing = true; try{ cv.setPointerCapture(e.pointerId); }catch(_){} sPop(); }
+    else say('분홍 동그라미를 잡아 볼까?');
+  }
+  function move(e){
+    if(!drawing) return; e.preventDefault();
+    var evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e]; if(!evs.length) evs = [e];
+    for(var k=0;k<evs.length && drawing;k++){
+      var f = pos(evs[k]), b = project(f);
+      if(!b || b.dd > Math.max(lw*1.4, 26)){                      // 너무 벗어남 → 실패가 아니라 «멈춰서 기다리기»
+        drawing = false; strays++; say('동그라미가 기다려요. 다시 잡아 볼까?'); return;
+      }
+      if(b.dist > prog) prog = b.dist;
+      if(prog >= S[si].len - lw*0.15){ prog = S[si].len; nextStroke(); }
+    }
+  }
+  function nextStroke(){
+    drawing = false;
+    if(si < S.length - 1){ si++; prog = 0; sGood(); say(cnt(si+1)+' 번째 동그라미!'); return; }
+    done = true; paint();
+    if(RUN){ RUN.q = RUN.q || []; RUN.q.push(strays === 0 ? 1 : 0); }
+    flash('🌈'); say(praise()+' '+kor(d)+'!');
+    if(onOK) setTimeout(onOK, 500); else { sGood(); kid().food += 1; save(); setTimeout(startFree, 1400); }
+  }
+  function up(){ drawing = false; }
+  cv.addEventListener('pointerdown', down); cv.addEventListener('pointermove', move); cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('touchstart', function(e){ e.preventDefault(); }, {passive:false});
+  cv.style.touchAction = 'none';
+  el('tClr').onclick = function(){ si = 0; prog = 0; done = false; drawing = false; sPop(); };
+  if(el('tNew')) el('tNew').onclick = function(){ startFree(); };
+  size(); window.onresize = size; loop();
+  window._tr = {S:function(){ return S; }, st:function(){ return {si:si, prog:prog, done:done, strays:strays}; }};   // 시험용
 }
 
 /* ═══════════════ 🎮 보상 게임 ═══════════════
