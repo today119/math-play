@@ -862,6 +862,12 @@ function ttsDB(){ return TTS_DB || (TTS_DB = new Promise(function(ok){ try{ var 
   r.onupgradeneeded = function(){ r.result.createObjectStore('a'); }; r.onsuccess = function(){ ok(r.result); }; r.onerror = function(){ ok(null); }; }catch(e){ ok(null); } })); }
 function ttsGet(k){ return ttsDB().then(function(db){ return db && new Promise(function(ok){ try{ var q = db.transaction('a').objectStore('a').get(k); q.onsuccess = function(){ ok(q.result||null); }; q.onerror = function(){ ok(null); }; }catch(e){ ok(null); } }); }); }
 function ttsPut(k, v){ ttsDB().then(function(db){ try{ db && db.transaction('a','readwrite').objectStore('a').put(v, k); }catch(e){} }); }
+var TTS_VOICES = [   /* 10/4 구글 한국어 목소리 41개(voices API로 확인). Chirp3 HD가 가장 자연스럽다 — pitch 미지원 */
+  ['✨ Chirp3 HD (가장 자연스러움)', [['ko-KR-Chirp3-HD-Achernar','♀ Achernar'],['ko-KR-Chirp3-HD-Aoede','♀ Aoede'],['ko-KR-Chirp3-HD-Autonoe','♀ Autonoe'],['ko-KR-Chirp3-HD-Callirrhoe','♀ Callirrhoe'],['ko-KR-Chirp3-HD-Despina','♀ Despina'],['ko-KR-Chirp3-HD-Erinome','♀ Erinome'],['ko-KR-Chirp3-HD-Gacrux','♀ Gacrux'],['ko-KR-Chirp3-HD-Kore','♀ Kore'],['ko-KR-Chirp3-HD-Laomedeia','♀ Laomedeia'],['ko-KR-Chirp3-HD-Leda','♀ Leda'],['ko-KR-Chirp3-HD-Pulcherrima','♀ Pulcherrima'],['ko-KR-Chirp3-HD-Sulafat','♀ Sulafat'],['ko-KR-Chirp3-HD-Vindemiatrix','♀ Vindemiatrix'],['ko-KR-Chirp3-HD-Zephyr','♀ Zephyr'],['ko-KR-Chirp3-HD-Achird','♂ Achird'],['ko-KR-Chirp3-HD-Algenib','♂ Algenib'],['ko-KR-Chirp3-HD-Algieba','♂ Algieba'],['ko-KR-Chirp3-HD-Alnilam','♂ Alnilam'],['ko-KR-Chirp3-HD-Charon','♂ Charon'],['ko-KR-Chirp3-HD-Enceladus','♂ Enceladus'],['ko-KR-Chirp3-HD-Fenrir','♂ Fenrir'],['ko-KR-Chirp3-HD-Iapetus','♂ Iapetus'],['ko-KR-Chirp3-HD-Orus','♂ Orus'],['ko-KR-Chirp3-HD-Puck','♂ Puck'],['ko-KR-Chirp3-HD-Rasalgethi','♂ Rasalgethi'],['ko-KR-Chirp3-HD-Sadachbia','♂ Sadachbia'],['ko-KR-Chirp3-HD-Sadaltager','♂ Sadaltager'],['ko-KR-Chirp3-HD-Schedar','♂ Schedar'],['ko-KR-Chirp3-HD-Umbriel','♂ Umbriel'],['ko-KR-Chirp3-HD-Zubenelgenubi','♂ Zubenelgenubi']]],
+  ['Neural2', [['ko-KR-Neural2-A','♀ A'],['ko-KR-Neural2-B','♀ B'],['ko-KR-Neural2-C','♂ C']]],
+  ['WaveNet', [['ko-KR-Wavenet-A','♀ A'],['ko-KR-Wavenet-B','♀ B'],['ko-KR-Wavenet-C','♂ C'],['ko-KR-Wavenet-D','♂ D']]],
+  ['Standard (기본)', [['ko-KR-Standard-A','♀ A'],['ko-KR-Standard-B','♀ B'],['ko-KR-Standard-C','♂ C'],['ko-KR-Standard-D','♂ D']]]
+];
 function ttsCfg(){ return D.tts || {}; }
 function googleSay(t, rate, seq, test){
   var cf = ttsCfg(), voice = cf.voice || 'ko-KR-Neural2-A', r = Math.round((rate||1)*100)/100, k = voice+'|'+r+'|'+t;
@@ -870,7 +876,7 @@ function googleSay(t, rate, seq, test){
   return ttsGet(k).then(function(hit){
     if(hit){ TTS_MEM[k] = hit; play(hit); return true; }
     return fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key='+encodeURIComponent(cf.key), {method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({input:{text:t}, voice:{languageCode:'ko-KR', name:voice}, audioConfig:{audioEncoding:'MP3', speakingRate:r, pitch:2}})})
+      body:JSON.stringify({input:{text:t}, voice:{languageCode:'ko-KR', name:voice}, audioConfig:/Chirp/.test(voice) ? {audioEncoding:'MP3', speakingRate:r} : {audioEncoding:'MP3', speakingRate:r, pitch:2}})})
       .then(function(res){ return res.json().then(function(j){ if(!res.ok) throw new Error((j.error && j.error.message) || res.status); return j; }); })
       .then(function(j){ TTS_MEM[k] = j.audioContent; ttsPut(k, j.audioContent); play(j.audioContent); return true; });
   }).catch(function(e){ if(test) throw e; TTS_FAIL = true; deviceSay(t, rate); return false; });
@@ -1893,8 +1899,8 @@ function vParent(){
     D.order.map(kidCard).join('')+
     '<div class="pcard"><h3>🔊 목소리</h3><p class="sub" style="margin:0 0 8px;font-size:15px;text-align:left">구글 음성(Cloud Text-to-Speech) API 키를 넣으면 더 자연스러운 목소리로 읽어요. 키는 <b>이 기기에만</b> 저장돼요. 없으면 기기 목소리를 써요.</p>'+
       '<input id="pKey" type="password" placeholder="AIza… (비워 두면 기기 목소리)" value="'+esc((D.tts||{}).key||'')+'" style="width:100%;font-size:16px;padding:10px;border-radius:12px;border:2px solid var(--line)">'+
-      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><select id="pVoice">'+[['ko-KR-Neural2-A','여자 목소리 A'],['ko-KR-Neural2-B','여자 목소리 B'],['ko-KR-Neural2-C','남자 목소리 C'],['ko-KR-Wavenet-A','여자 목소리 (Wavenet)']].map(function(o){
-        return '<option value="'+o[0]+'"'+(((D.tts||{}).voice||'ko-KR-Neural2-A')===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('')+'</select>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><select id="pVoice" style="max-width:100%">'+TTS_VOICES.map(function(g){ return '<optgroup label="'+g[0]+'">'+g[1].map(function(o){
+        return '<option value="'+o[0]+'"'+(((D.tts||{}).voice||'ko-KR-Neural2-A')===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('')+'</optgroup>'; }).join('')+'</select>'+
       '<button class="ghost" id="pTts">💾 저장하고 들어 보기</button></div><p class="sub" id="pTtsMsg" style="margin:6px 0 0;font-size:14px;text-align:left">지금: '+((D.tts||{}).key ? (TTS_FAIL ? '❌ 구글 연결 실패 → 기기 목소리' : '🟢 구글 목소리 (키 저장됨)') : '📱 기기 목소리 (구글 키 없음)')+'</p></div>'+
     '<div class="pcard"><button class="ghost" id="pPin">🔑 비밀번호 바꾸기</button></div>'+
     '<div class="pcard"><h3>🖼 그림 출처</h3><p class="sub" style="font-size:14px;margin:0;text-align:left">'+
