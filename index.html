@@ -954,6 +954,7 @@ function overLimit(k){ var x = D.kids[k]; return D.limit && (x.days[today()]||0)
 function minutesToday(k){ return Math.floor((D.kids[k].days[today()]||0)/60); }
 
 /* ═══════════════ 화면: 누구야? ═══════════════ */
+var FREE_KIDS = 2;   // 부모 허락 없이 만들 수 있는 프로필 수
 function vPick(){
   K = null; stopClock();
   el('s-pick').innerHTML =
@@ -964,7 +965,7 @@ function vPick(){
       return '<button class="kid '+(i%2?'ya':'yu')+'" data-k="'+k+'"><span class="em">'+(p ? petHTML(p) : x.avatar)+'</span>'+
         '<b>'+esc(x.name)+'</b><small>'+T.em+' '+T.n+(p ? ' · '+esc(p.name) : '')+(nAni ? '<br>📖 동물 '+nAni+'마리' : '')+'</small></button>';
     }).join('')+
-    '<button class="kid" id="addKid" style="border-style:dashed"><span class="em" style="opacity:.5">＋</span><b style="font-size:24px">새 친구</b><small>프로필 만들기</small></button></div>';
+    '<button class="kid" id="addKid" style="border-style:dashed"><span class="em" style="opacity:.5">＋</span><b style="font-size:24px">새 친구</b><small>'+(D.order.length >= FREE_KIDS ? '🔒 부모 허락' : '프로필 만들기')+'</small></button></div>';
   el('s-pick').querySelectorAll('[data-k]').forEach(function(b){
     b.onclick = function(){
       ac(); K = b.dataset.k;
@@ -975,7 +976,8 @@ function vPick(){
     };
   });
   el('toParent').onclick = function(){ vPin(); };
-  el('addKid').onclick = function(){ ac(); vNewKid(); };
+  /* 10/4 사용자: 새 친구는 2명까지만, 더 만들려면 부모 허락(비밀번호) */
+  el('addKid').onclick = function(){ ac(); if(D.order.length >= FREE_KIDS) vPin(vNewKid, '친구는 '+FREE_KIDS+'명까지 만들 수 있어요. 더 만들려면 엄마·아빠가 비밀번호를 눌러 주세요'); else vNewKid(); };
   show('s-pick');
 }
 function bumpStreak(){
@@ -1839,11 +1841,12 @@ function goSleep(){
 }
 
 /* ═══════════════ 부모 ═══════════════ */
-function vPin(){
+function vPin(onOK, why){   /* onOK: 비밀번호가 맞으면 갈 곳(기본 부모 화면) · why: 왜 묻는지 */
+  onOK = onOK || vParent;
   var buf = '', setting = !D.pin, first = '';
   function draw(msg){
     el('s-parent').innerHTML = '<div class="top"><button class="ghost" id="pBack">◀ 처음</button><span class="sp"></span></div>'+
-      '<h1>👨‍👩‍👧 부모 화면</h1><p class="sub">'+(msg || (setting ? (first ? '한 번 더 입력해 주세요' : '처음이에요 — 부모 비밀번호 4자리를 정해 주세요') : '비밀번호 4자리'))+'</p>'+
+      '<h1>👨‍👩‍👧 '+(why ? '부모 허락' : '부모 화면')+'</h1>'+(why ? '<p class="sub" style="font-weight:800">'+why+'</p>' : '')+'<p class="sub">'+(msg || (setting ? (first ? '한 번 더 입력해 주세요' : '처음이에요 — 부모 비밀번호 4자리를 정해 주세요') : '비밀번호 4자리'))+'</p>'+
       '<div class="pin">'+[0,1,2,3].map(function(i){ return '<span>'+(buf[i] ? '●' : '')+'</span>'; }).join('')+'</div>'+
       '<div class="pad">'+[1,2,3,4,5,6,7,8,9].map(function(n){ return '<button data-n="'+n+'">'+n+'</button>'; }).join('')+
       '<button class="del" data-n="del">⌫</button><button data-n="0">0</button><span></span></div>';
@@ -1854,10 +1857,10 @@ function vPin(){
         buf += v; if(buf.length < 4) return draw();
         if(setting){
           if(!first){ first = buf; buf = ''; return draw(); }
-          if(first === buf){ D.pin = buf; save(); return vParent(); }
+          if(first === buf){ D.pin = buf; save(); return onOK(); }
           first = ''; buf = ''; return draw('두 번이 달라요 — 다시 정해 주세요');
         }
-        if(buf === D.pin) return vParent();
+        if(buf === D.pin) return onOK();
         buf = ''; draw('비밀번호가 달라요');
       };
     });
