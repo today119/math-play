@@ -825,28 +825,69 @@ function today(){ var t=new Date(); return t.getFullYear()+'-'+(t.getMonth()+1)+
 /* ═══════════════ 소리·음성 ═══════════════ */
 var AC = null;
 function ac(){ if(!AC){ var C = window.AudioContext||window.webkitAudioContext; if(C) AC = new C(); } if(AC && AC.state==='suspended') AC.resume(); return AC; }
-function tone(freqs, dur, type){
-  var c = ac(); if(!c) return;
-  freqs.forEach(function(f, i){
-    var o = c.createOscillator(), g = c.createGain(), t = c.currentTime + i*dur*.8;
-    o.type = type||'triangle'; o.frequency.value = f;
-    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.25, t+.02); g.gain.exponentialRampToValueAtTime(.0001, t+dur);
-    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+dur+.05);
+/* 효과음 — 10/4 사용자 "소리도 예쁘게": 날카로운 삑 대신 마림바·종소리(배음+짧은 울림). 틀림은 부드러운 «뿅»(아이가 겁먹지 않게) */
+var FX = null;
+function fxBus(c){ if(FX) return FX;
+  var out = c.createGain(), dl = c.createDelay(), fb = c.createGain(), wet = c.createGain();
+  out.gain.value = .9; dl.delayTime.value = .11; fb.gain.value = .28; wet.gain.value = .22;
+  out.connect(c.destination); out.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(wet); wet.connect(c.destination);
+  return (FX = out); }
+function note(f, at, dur, vol, parts){
+  var c = ac(); if(!c) return; var bus = fxBus(c), t = c.currentTime + at;
+  (parts || [[1,1],[4,.18],[10,.05]]).forEach(function(p){
+    var o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.value = f*p[0];
+    var d = dur / (p[0] > 1 ? p[0]*.5 : 1);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol*p[1], t+.008); g.gain.exponentialRampToValueAtTime(.0001, t+d);
+    o.connect(g); g.connect(bus); o.start(t); o.stop(t+d+.05);
   });
 }
-function sGood(){ tone([660, 880], .14); }
-function sBad(){ tone([220, 180], .18, 'square'); }
-function sWin(){ tone([523, 659, 784, 1047], .16); }
-function sPop(){ tone([900], .07, 'sine'); }
-function say(t, rate){
+function tone(freqs, dur){ freqs.forEach(function(f, i){ note(f, i*dur*.8, dur*2.2, .22); }); }   // 예전 호출용
+var BELL = [[1,1],[2.76,.32],[5.4,.12],[8.9,.05]];
+function sGood(){ note(1047, 0, .45, .22); note(1319, .09, .6, .22); }                              // 띠링
+function sBad(){ var c = ac(); if(!c) return; var o = c.createOscillator(), g = c.createGain(), t = c.currentTime;   // 부드러운 뿅↘
+  o.type = 'sine'; o.frequency.setValueAtTime(440, t); o.frequency.exponentialRampToValueAtTime(200, t+.28);
+  g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.18, t+.02); g.gain.exponentialRampToValueAtTime(.0001, t+.32);
+  o.connect(g); g.connect(fxBus(c)); o.start(t); o.stop(t+.35); }
+function sWin(){ [523, 659, 784, 1047, 1319].forEach(function(f, i){ note(f, i*.085, .9, .2, BELL); }); note(1568, .5, 1.4, .14, BELL); note(2093, .58, 1.2, .08, BELL); }   // 반짝 아르페지오
+function sPop(){ var c = ac(); if(!c) return; var o = c.createOscillator(), g = c.createGain(), t = c.currentTime;   // 방울 톡
+  o.type = 'sine'; o.frequency.setValueAtTime(600, t); o.frequency.exponentialRampToValueAtTime(1300, t+.06);
+  g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.16, t+.01); g.gain.exponentialRampToValueAtTime(.0001, t+.09);
+  o.connect(g); g.connect(fxBus(c)); o.start(t); o.stop(t+.12); }
+
+/* 음성 — 부모 화면에 구글 음성 키를 넣으면 구글 Neural2 목소리, 없거나 실패하면 기기 목소리.
+   키는 코드에 넣지 않는다(공개 저장소) → 이 기기 localStorage(D.tts)에만. 같은 문장은 IndexedDB에 저장해 다시 안 부른다(무료 한도 아끼기) */
+var TTS_DB = null, TTS_MEM = {}, TTS_AUDIO = null, TTS_SEQ = 0, TTS_FAIL = false;
+function ttsDB(){ return TTS_DB || (TTS_DB = new Promise(function(ok){ try{ var r = indexedDB.open('mathplay-tts', 1);
+  r.onupgradeneeded = function(){ r.result.createObjectStore('a'); }; r.onsuccess = function(){ ok(r.result); }; r.onerror = function(){ ok(null); }; }catch(e){ ok(null); } })); }
+function ttsGet(k){ return ttsDB().then(function(db){ return db && new Promise(function(ok){ try{ var q = db.transaction('a').objectStore('a').get(k); q.onsuccess = function(){ ok(q.result||null); }; q.onerror = function(){ ok(null); }; }catch(e){ ok(null); } }); }); }
+function ttsPut(k, v){ ttsDB().then(function(db){ try{ db && db.transaction('a','readwrite').objectStore('a').put(v, k); }catch(e){} }); }
+function ttsCfg(){ return D.tts || {}; }
+function googleSay(t, rate, seq, test){
+  var cf = ttsCfg(), voice = cf.voice || 'ko-KR-Neural2-A', r = Math.round((rate||1)*100)/100, k = voice+'|'+r+'|'+t;
+  function play(b64){ if(seq !== TTS_SEQ) return; try{ if(TTS_AUDIO) TTS_AUDIO.pause(); TTS_AUDIO = new Audio('data:audio/mp3;base64,'+b64); TTS_AUDIO.play().catch(function(){}); }catch(e){} }
+  if(TTS_MEM[k]){ play(TTS_MEM[k]); return Promise.resolve(true); }
+  return ttsGet(k).then(function(hit){
+    if(hit){ TTS_MEM[k] = hit; play(hit); return true; }
+    return fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key='+encodeURIComponent(cf.key), {method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({input:{text:t}, voice:{languageCode:'ko-KR', name:voice}, audioConfig:{audioEncoding:'MP3', speakingRate:r, pitch:2}})})
+      .then(function(res){ return res.json().then(function(j){ if(!res.ok) throw new Error((j.error && j.error.message) || res.status); return j; }); })
+      .then(function(j){ TTS_MEM[k] = j.audioContent; ttsPut(k, j.audioContent); play(j.audioContent); return true; });
+  }).catch(function(e){ if(test) throw e; TTS_FAIL = true; deviceSay(t, rate); return false; });
+}
+function deviceSay(t, rate){
   try{
     speechSynthesis.cancel();
-    t = String(t).replace(/\d+/g, function(m){ return kor(m); });   // 남은 숫자는 한자어로 (12 → 십이)
     var u = new SpeechSynthesisUtterance(t); u.lang = 'ko-KR'; u.rate = rate||1; u.pitch = 1.25;
     var v = speechSynthesis.getVoices().filter(function(v){ return /^ko/i.test(v.lang); });
     var p = v.filter(function(x){ return /premium|enhanced|향상/i.test(x.name); })[0] || v[0]; if(p) u.voice = p;
     speechSynthesis.speak(u);
   }catch(e){}
+}
+function say(t, rate){
+  t = String(t).replace(/\d+/g, function(m){ return kor(m); });   // 남은 숫자는 한자어로 (12 → 십이)
+  var seq = ++TTS_SEQ;
+  try{ speechSynthesis.cancel(); }catch(e){} if(TTS_AUDIO) try{ TTS_AUDIO.pause(); }catch(e){}
+  if(ttsCfg().key && !TTS_FAIL) googleSay(t, rate, seq); else deviceSay(t, rate);
 }
 /* 숫자 읽기 — 음성이 12 를 「일이」로 읽어서 직접 한글로 바꿔 준다 (사용자 지적)
    kor(12) = 십이 (구구단·수식) / cnt(3) = 세 (물건 셀 때: 세 개) */
@@ -1824,6 +1865,11 @@ function vParent(){
       return '<option value="'+o[0]+'"'+(D.limit===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('')+'</select>'+
       '<p class="sub" style="margin:8px 0 0;font-size:15px">시간이 다 되면 동물이 잠들고 그날은 더 못 놀아요. 아이패드 「설정 → 손쉬운 사용 → 사용법 유도된 접근」을 켜면 앱 밖으로 나갈 수 없어요.</p></div>'+
     D.order.map(kidCard).join('')+
+    '<div class="pcard"><h3>🔊 목소리</h3><p class="sub" style="margin:0 0 8px;font-size:15px;text-align:left">구글 음성(Cloud Text-to-Speech) API 키를 넣으면 더 자연스러운 목소리로 읽어요. 키는 <b>이 기기에만</b> 저장돼요. 없으면 기기 목소리를 써요.</p>'+
+      '<input id="pKey" type="password" placeholder="AIza… (비워 두면 기기 목소리)" value="'+esc((D.tts||{}).key||'')+'" style="width:100%;font-size:16px;padding:10px;border-radius:12px;border:2px solid var(--line)">'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><select id="pVoice">'+[['ko-KR-Neural2-A','여자 목소리 A'],['ko-KR-Neural2-B','여자 목소리 B'],['ko-KR-Neural2-C','남자 목소리 C'],['ko-KR-Wavenet-A','여자 목소리 (Wavenet)']].map(function(o){
+        return '<option value="'+o[0]+'"'+(((D.tts||{}).voice||'ko-KR-Neural2-A')===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('')+'</select>'+
+      '<button class="ghost" id="pTts">💾 저장하고 들어 보기</button></div><p class="sub" id="pTtsMsg" style="margin:6px 0 0;font-size:14px;text-align:left"></p></div>'+
     '<div class="pcard"><button class="ghost" id="pPin">🔑 비밀번호 바꾸기</button></div>'+
     '<div class="pcard"><h3>🖼 그림 출처</h3><p class="sub" style="font-size:14px;margin:0;text-align:left">'+
       '컬러 그림: Microsoft Fluent Emoji (MIT License, © Microsoft Corporation)<br>'+
@@ -1833,6 +1879,14 @@ function vParent(){
   el('pBack').onclick = vPick;
   el('pLim').onchange = function(){ D.limit = +el('pLim').value; save(); toast('하루 '+(D.limit ? D.limit+'분' : '제한 없음')); };
   el('pPin').onclick = function(){ D.pin = ''; save(); vPin(); };
+  el('pTts').onclick = function(){
+    var key = el('pKey').value.trim(); D.tts = {key:key, voice:el('pVoice').value}; save(); TTS_FAIL = false;
+    var msg = el('pTtsMsg'); if(!key){ msg.textContent = '기기 목소리를 써요.'; say('안녕! 동물 친구 수학 놀이터예요.'); return; }
+    msg.textContent = '확인하는 중…';
+    googleSay('안녕! 칠 곱하기 팔은 오십육! 정말 잘했어요!', 1, ++TTS_SEQ, true)
+      .then(function(){ msg.textContent = '✅ 구글 목소리가 연결됐어요.'; })
+      .catch(function(e){ msg.textContent = '❌ 연결 안 됨: '+e.message+' — 기기 목소리를 써요.'; TTS_FAIL = true; });
+  };
   el('s-parent').querySelectorAll('[data-more]').forEach(function(b){ b.onclick = function(){
     var x = D.kids[b.dataset.more], d = today(); x.days[d] = Math.max(0, (x.days[d]||0) - 600); save(); toast('10분 더!'); vParent(); }; });
   el('s-parent').querySelectorAll('[data-reset]').forEach(function(b){ b.onclick = function(){
