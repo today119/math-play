@@ -246,6 +246,7 @@ h1{font-size:clamp(24px,6.4vw,46px)} .sub{font-size:clamp(14px,3.4vw,20px)}
   padding:12px 20px;border-radius:16px;font-weight:800;font-size:18px;opacity:0;transition:opacity .2s;z-index:99;pointer-events:none}
 .toast.on{opacity:1}
 
+.thint{margin:4px auto 8px;padding:8px 14px;border-radius:14px;background:#fff6c7;border:2px solid #f2d36b;font-weight:800;font-size:clamp(16px,4.2vw,22px);color:#6b5200;max-width:520px}
 /* 🕐 시계 */
 .clk{display:block;margin:6px auto;width:100%;height:auto}
 .clk.cbig{width:min(68vw,40vh,340px)}
@@ -1335,12 +1336,12 @@ function startReview(){
 }
 /* ── 자판 문제 (구구단·더하기빼기·섞기) ── */
 function qMul(){
-  var q = RUN.lv.t==='review' ? qFromTag(RUN.lv.pool[RUN.i % RUN.lv.pool.length]) : genQ(RUN.lv), ans = q.ans, txt = q.txt, tag = q.tag, input = '', tries = 0;
+  var q = RUN.lv.t==='review' ? qFromTag(RUN.lv.pool[RUN.i % RUN.lv.pool.length]) : genQ(RUN.lv), ans = q.ans, txt = q.txt, tag = q.tag, input = '', tries = 0, hintTxt = '';
   function draw(){
     var qhtml = q.v ? '<div class="vert"><div>'+q.v[0]+'</div><div><span class="vo">'+(q.v[1]==='+'?'+':'−')+'</span>'+q.v[2]+'</div><div class="vbar"></div><div class="vans">'+(input||'&nbsp;')+'</div></div>'
                     : '<div class="qtext">'+txt+'</div><div class="ansline">'+(input||'&nbsp;')+'</div>';
     el('s-play').innerHTML = qTop()+
-      '<div class="qbox">'+qhtml+
+      '<div class="qbox">'+qhtml+(hintTxt ? '<div class="thint">'+hintTxt+'</div>' : '')+
       '<div class="pad">'+[1,2,3,4,5,6,7,8,9].map(function(n){ return '<button data-n="'+n+'">'+n+'</button>'; }).join('')+
         '<button class="del" data-n="del">⌫</button><button data-n="0">0</button><button class="ok" data-n="ok">✔</button></div></div>';
     bindTop();
@@ -1362,11 +1363,27 @@ function qMul(){
       if(RUN.lv.t==='review' && !tries){ var mm = kid().miss; mm[tag] = Math.max(0, (mm[tag]||0) - 1); if(!mm[tag]) delete mm[tag]; save(); }   // 맞히면 오답 노트에서 줄어든다
       right(tries ? 1 : 2);
     }
-    else { wrong(tag); tries++; input = ''; draw(); if(tries >= 2){ toast('정답은 '+ans); say(String(ans)); } }
+    else { wrong(tag); tries++; input = ''; if(tries >= 2) hintTxt = thinkHint(q, tries); draw(); }   /* 10/4 사용자: 정답을 말해 주지 말고 다시 생각하게 — 정답 대신 생각 거리만 화면에 */
   }
   draw(); show('s-play');
 }
 
+/* 생각 힌트 — 정답은 절대 말하지 않는다. 틀릴수록 조금 더 구체적으로 */
+function thinkHint(q, tries){
+  var t = q.txt, m;
+  if((m = t.match(/^(\d+) × (\d+) =$/))){ var a = +m[1], b = +m[2];
+    return tries >= 3 && b > 1 ? '💡 '+a+' × '+(b-1)+' = '+(a*(b-1))+' 에서 '+a+' 더 가면?' : '💡 '+a+'씩 '+b+'번 더해 봐요'; }
+  if((m = t.match(/^(\d+) × □ = (\d+)$/))) return '💡 '+m[1]+'단을 차례로 외워 봐요';
+  if((m = t.match(/÷ (\d+) 의 나머지/))) return '💡 '+m[1]+'단에서 넘지 않는 가장 큰 수를 찾아요';
+  if((m = t.match(/^(\d+) ÷ (\d+) =$/))) return '💡 '+m[2]+' × □ = '+m[1]+' 을 생각해 봐요';
+  if(/\(/.test(t)) return '💡 괄호 안부터 계산해요';
+  if(/\+.*×|×.*[−-]/.test(t)) return '💡 곱셈을 먼저 해요';
+  if(q.v) return q.v[1]==='+' ? '💡 일의 자리부터! 10이 넘으면 위로 1 올려요' : '💡 일의 자리부터! 모자라면 옆에서 10 빌려 와요';
+  if(/□/.test(t)) return '💡 큰 수에서 작은 수를 빼 봐요';
+  if((m = t.match(/^(\d+) \+ (\d+) =$/))) return +m[2] <= 9 ? '💡 '+m[1]+'에서 '+m[2]+'칸 세어 올라가요' : '💡 10씩 먼저 더하고, 그다음 낱개를 더해요';
+  if((m = t.match(/^(\d+) − (\d+) =$/))) return +m[2] <= 9 ? '💡 '+m[1]+'에서 '+m[2]+'칸 거꾸로 세어요' : '💡 10씩 먼저 빼고, 그다음 낱개를 빼요';
+  return '💡 천천히 다시 생각해 봐요';
+}
 /* ── 60초 스피드 챌린지 ── */
 function startSpeed(){
   /* 스피드 — 지금 수준에서 «깬 단계까지» 섞어서 낸다 */
