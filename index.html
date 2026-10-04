@@ -863,14 +863,17 @@ function ttsDB(){ return TTS_DB || (TTS_DB = new Promise(function(ok){ try{ var 
 function ttsGet(k){ return ttsDB().then(function(db){ return db && new Promise(function(ok){ try{ var q = db.transaction('a').objectStore('a').get(k); q.onsuccess = function(){ ok(q.result||null); }; q.onerror = function(){ ok(null); }; }catch(e){ ok(null); } }); }); }
 function ttsPut(k, v){ ttsDB().then(function(db){ try{ db && db.transaction('a','readwrite').objectStore('a').put(v, k); }catch(e){} }); }
 var TTS_VOICES = [   /* 10/4 구글 한국어 목소리 41개(voices API로 확인). Chirp3 HD가 가장 자연스럽다 — pitch 미지원 */
+  ['⭐ 우리 집 추천', [['ko-KR-Chirp3-HD-Leda','♀ Leda (기본)'],['ko-KR-Chirp3-HD-Kore','♀ Kore'],['ko-KR-Chirp3-HD-Puck','♂ Puck']]],   // 10/4 사용자가 들어 보고 고름
   ['✨ Chirp3 HD (가장 자연스러움)', [['ko-KR-Chirp3-HD-Achernar','♀ Achernar'],['ko-KR-Chirp3-HD-Aoede','♀ Aoede'],['ko-KR-Chirp3-HD-Autonoe','♀ Autonoe'],['ko-KR-Chirp3-HD-Callirrhoe','♀ Callirrhoe'],['ko-KR-Chirp3-HD-Despina','♀ Despina'],['ko-KR-Chirp3-HD-Erinome','♀ Erinome'],['ko-KR-Chirp3-HD-Gacrux','♀ Gacrux'],['ko-KR-Chirp3-HD-Kore','♀ Kore'],['ko-KR-Chirp3-HD-Laomedeia','♀ Laomedeia'],['ko-KR-Chirp3-HD-Leda','♀ Leda'],['ko-KR-Chirp3-HD-Pulcherrima','♀ Pulcherrima'],['ko-KR-Chirp3-HD-Sulafat','♀ Sulafat'],['ko-KR-Chirp3-HD-Vindemiatrix','♀ Vindemiatrix'],['ko-KR-Chirp3-HD-Zephyr','♀ Zephyr'],['ko-KR-Chirp3-HD-Achird','♂ Achird'],['ko-KR-Chirp3-HD-Algenib','♂ Algenib'],['ko-KR-Chirp3-HD-Algieba','♂ Algieba'],['ko-KR-Chirp3-HD-Alnilam','♂ Alnilam'],['ko-KR-Chirp3-HD-Charon','♂ Charon'],['ko-KR-Chirp3-HD-Enceladus','♂ Enceladus'],['ko-KR-Chirp3-HD-Fenrir','♂ Fenrir'],['ko-KR-Chirp3-HD-Iapetus','♂ Iapetus'],['ko-KR-Chirp3-HD-Orus','♂ Orus'],['ko-KR-Chirp3-HD-Puck','♂ Puck'],['ko-KR-Chirp3-HD-Rasalgethi','♂ Rasalgethi'],['ko-KR-Chirp3-HD-Sadachbia','♂ Sadachbia'],['ko-KR-Chirp3-HD-Sadaltager','♂ Sadaltager'],['ko-KR-Chirp3-HD-Schedar','♂ Schedar'],['ko-KR-Chirp3-HD-Umbriel','♂ Umbriel'],['ko-KR-Chirp3-HD-Zubenelgenubi','♂ Zubenelgenubi']]],
   ['Neural2', [['ko-KR-Neural2-A','♀ A'],['ko-KR-Neural2-B','♀ B'],['ko-KR-Neural2-C','♂ C']]],
   ['WaveNet', [['ko-KR-Wavenet-A','♀ A'],['ko-KR-Wavenet-B','♀ B'],['ko-KR-Wavenet-C','♂ C'],['ko-KR-Wavenet-D','♂ D']]],
   ['Standard (기본)', [['ko-KR-Standard-A','♀ A'],['ko-KR-Standard-B','♀ B'],['ko-KR-Standard-C','♂ C'],['ko-KR-Standard-D','♂ D']]]
 ];
+/* 10/4 기본 목소리를 Neural2-A → Chirp3 Leda 로(사용자가 들어 보고 고름). 예전 기본값 그대로인 기기만 바꾼다 */
+if(D.tts && !D.tts.v2){ if(!D.tts.voice || D.tts.voice === 'ko-KR-Neural2-A') D.tts.voice = 'ko-KR-Chirp3-HD-Leda'; D.tts.v2 = true; save(); }
 function ttsCfg(){ return D.tts || {}; }
 function googleSay(t, rate, seq, test){
-  var cf = ttsCfg(), voice = cf.voice || 'ko-KR-Neural2-A', r = Math.round((rate||1)*100)/100, k = voice+'|'+r+'|'+t;
+  var cf = ttsCfg(), voice = cf.voice || 'ko-KR-Chirp3-HD-Leda', r = Math.round((rate||1)*100)/100, k = voice+'|'+r+'|'+t;
   function play(b64){ if(seq !== TTS_SEQ) return; try{ if(TTS_AUDIO) TTS_AUDIO.pause(); TTS_AUDIO = new Audio('data:audio/mp3;base64,'+b64); TTS_AUDIO.play().catch(function(){}); }catch(e){} }
   if(TTS_MEM[k]){ play(TTS_MEM[k]); return Promise.resolve(true); }
   return ttsGet(k).then(function(hit){
@@ -1900,7 +1903,7 @@ function vParent(){
     '<div class="pcard"><h3>🔊 목소리</h3><p class="sub" style="margin:0 0 8px;font-size:15px;text-align:left">구글 음성(Cloud Text-to-Speech) API 키를 넣으면 더 자연스러운 목소리로 읽어요. 키는 <b>이 기기에만</b> 저장돼요. 없으면 기기 목소리를 써요.</p>'+
       '<input id="pKey" type="password" placeholder="AIza… (비워 두면 기기 목소리)" value="'+esc((D.tts||{}).key||'')+'" style="width:100%;font-size:16px;padding:10px;border-radius:12px;border:2px solid var(--line)">'+
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><select id="pVoice" style="max-width:100%">'+TTS_VOICES.map(function(g){ return '<optgroup label="'+g[0]+'">'+g[1].map(function(o){
-        return '<option value="'+o[0]+'"'+(((D.tts||{}).voice||'ko-KR-Neural2-A')===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('')+'</optgroup>'; }).join('')+'</select>'+
+        return '<option value="'+o[0]+'"'+(((D.tts||{}).voice||'ko-KR-Chirp3-HD-Leda')===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('')+'</optgroup>'; }).join('')+'</select>'+
       '<button class="ghost" id="pTts">💾 저장하고 들어 보기</button></div><p class="sub" id="pTtsMsg" style="margin:6px 0 0;font-size:14px;text-align:left">지금: '+((D.tts||{}).key ? (TTS_FAIL ? '❌ 구글 연결 실패 → 기기 목소리' : '🟢 구글 목소리 (키 저장됨)') : '📱 기기 목소리 (구글 키 없음)')+'</p></div>'+
     '<div class="pcard"><button class="ghost" id="pPin">🔑 비밀번호 바꾸기</button></div>'+
     '<div class="pcard"><h3>🖼 그림 출처</h3><p class="sub" style="font-size:14px;margin:0;text-align:left">'+
@@ -1912,7 +1915,7 @@ function vParent(){
   el('pLim').onchange = function(){ D.limit = +el('pLim').value; save(); toast('하루 '+(D.limit ? D.limit+'분' : '제한 없음')); };
   el('pPin').onclick = function(){ D.pin = ''; save(); vPin(); };
   el('pTts').onclick = function(){
-    var key = el('pKey').value.trim(); D.tts = {key:key, voice:el('pVoice').value}; save(); TTS_FAIL = false;
+    var key = el('pKey').value.trim(); D.tts = {key:key, voice:el('pVoice').value, v2:true}; save(); TTS_FAIL = false;
     var msg = el('pTtsMsg'); if(!key){ msg.textContent = '기기 목소리를 써요.'; say('안녕! 동물 친구 수학 놀이터예요.'); return; }
     msg.textContent = '확인하는 중…';
     googleSay('안녕! 칠 곱하기 팔은 오십육! 정말 잘했어요!', 1, ++TTS_SEQ, true)
@@ -1936,7 +1939,7 @@ document.addEventListener('gesturestart', function(e){ e.preventDefault(); }, {p
 document.addEventListener('visibilitychange', function(){ if(document.hidden) try{ speechSynthesis.cancel(); }catch(e){} });
 /* 설정 링크 — ?tts=키 로 열면 이 기기에 구글 음성 키를 저장하고 주소에서 지운다(아이패드에서 긴 키를 치지 않게) */
 (function(){ try{ var m = location.search.match(/[?&]tts=([^&]+)/); if(!m) return;
-  var key = decodeURIComponent(m[1]).trim(); D.tts = {key:key, voice:(D.tts||{}).voice || 'ko-KR-Neural2-A'}; TTS_FAIL = false; save();
+  var key = decodeURIComponent(m[1]).trim(); D.tts = {key:key, voice:(D.tts||{}).voice || 'ko-KR-Chirp3-HD-Leda', v2:true}; TTS_FAIL = false; save();
   history.replaceState(null, '', location.pathname); setTimeout(function(){ toast('🔊 구글 목소리를 연결했어요'); }, 400); }catch(e){} })();
 vPick();
 </script>
